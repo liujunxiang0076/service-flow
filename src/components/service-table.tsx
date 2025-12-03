@@ -1,0 +1,272 @@
+"use client"
+
+import type { Service, ServiceGroup, Application } from "@/types/service"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Play, Square, RotateCw, Settings } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Card } from "@/components/ui/card"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Checkbox } from "@/components/ui/checkbox"
+import { toast } from "sonner"
+
+interface ServiceTableProps {
+  services: Service[]
+  groups: ServiceGroup[]
+  applications?: Application[]
+  selectedServices?: string[]
+  onSelectionChange?: (selected: string[]) => void
+  onStart?: (serviceId: string) => void
+  onStop?: (serviceId: string) => void
+  onRestart?: (serviceId: string) => void
+  onEdit?: (serviceId: string) => void
+  onDelete?: (serviceId: string) => void
+}
+
+export function ServiceTable({
+  services,
+  groups,
+  applications = [],
+  selectedServices = [],
+  onSelectionChange,
+  onStart,
+  onStop,
+  onRestart,
+  onEdit,
+  onDelete,
+}: ServiceTableProps) {
+  const getGroupName = (groupId: string) => {
+    return groups.find((g) => g.id === groupId)?.name || "未知分组"
+  }
+
+  const getApplicationName = (groupId: string) => {
+    if (!applications || applications.length === 0) return "-"
+    const app = applications.find((app) => app.groupIds?.includes(groupId))
+    return app?.name || "-"
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      onSelectionChange?.(services.map((s) => s.id))
+    } else {
+      onSelectionChange?.([])
+    }
+  }
+
+  const handleSelectService = (serviceId: string, checked: boolean) => {
+    if (checked) {
+      onSelectionChange?.([...selectedServices, serviceId])
+    } else {
+      onSelectionChange?.(selectedServices.filter((id) => id !== serviceId))
+    }
+  }
+
+  const handleStart = (serviceId: string, serviceName: string) => {
+    toast.success(`正在启动 ${serviceName}...`)
+    onStart?.(serviceId)
+  }
+
+  const handleStop = (serviceId: string, serviceName: string) => {
+    toast.success(`正在停止 ${serviceName}...`)
+    onStop?.(serviceId)
+  }
+
+  const handleRestart = (serviceId: string, serviceName: string) => {
+    toast.success(`正在重启 ${serviceName}...`)
+    onRestart?.(serviceId)
+  }
+
+  const isAllSelected = services.length > 0 && selectedServices.length === services.length
+  const isIndeterminate = selectedServices.length > 0 && selectedServices.length < services.length
+
+  return (
+    <Card>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {onSelectionChange && (
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={isAllSelected}
+                  onCheckedChange={handleSelectAll}
+                  aria-label="全选"
+                  className={isIndeterminate ? "opacity-50" : ""}
+                />
+              </TableHead>
+            )}
+            <TableHead>状态</TableHead>
+            <TableHead>服务名称</TableHead>
+            <TableHead>所属应用</TableHead>
+            <TableHead>分组</TableHead>
+            <TableHead>健康状态</TableHead>
+            <TableHead>PID</TableHead>
+            <TableHead>启动时间</TableHead>
+            <TableHead>依赖</TableHead>
+            <TableHead className="text-right">操作</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {services.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={onSelectionChange ? 10 : 9} className="h-24 text-center">
+                <div className="flex flex-col items-center justify-center text-muted-foreground">
+                  <p>暂无服务</p>
+                  <p className="text-sm">点击"新建服务"按钮创建第一个服务</p>
+                </div>
+              </TableCell>
+            </TableRow>
+          ) : (
+            services.map((service) => (
+              <TableRow key={service.id} className={cn(selectedServices.includes(service.id) && "bg-primary/5")}>
+                {onSelectionChange && (
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedServices.includes(service.id)}
+                      onCheckedChange={(checked) => handleSelectService(service.id, !!checked)}
+                      aria-label={`选择 ${service.name}`}
+                    />
+                  </TableCell>
+                )}
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={cn(
+                        "h-2 w-2 rounded-full",
+                        service.status === "running" && "bg-success animate-pulse",
+                        service.status === "stopped" && "bg-muted-foreground",
+                        service.status === "starting" && "bg-warning animate-pulse",
+                        service.status === "stopping" && "bg-warning",
+                        service.status === "error" && "bg-destructive",
+                      )}
+                    />
+                    <Badge variant="secondary" className="text-xs">
+                      {service.status === "running" && "运行中"}
+                      {service.status === "stopped" && "已停止"}
+                      {service.status === "starting" && "启动中"}
+                      {service.status === "stopping" && "停止中"}
+                      {service.status === "error" && "错误"}
+                    </Badge>
+                  </div>
+                </TableCell>
+
+                <TableCell>
+                  <div>
+                    <p className="font-medium text-foreground">{service.name}</p>
+                    {service.description && <p className="text-xs text-muted-foreground">{service.description}</p>}
+                  </div>
+                </TableCell>
+
+                <TableCell>
+                  <Badge variant="outline">{getApplicationName(service.groupId)}</Badge>
+                </TableCell>
+
+                <TableCell>
+                  <Badge variant="outline">{getGroupName(service.groupId)}</Badge>
+                </TableCell>
+
+                <TableCell>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      service.healthStatus === "healthy" && "border-success text-success",
+                      service.healthStatus === "unhealthy" && "border-destructive text-destructive",
+                      service.healthStatus === "unconfigured" && "border-muted-foreground text-muted-foreground",
+                    )}
+                  >
+                    {service.healthStatus === "healthy" && "健康"}
+                    {service.healthStatus === "unhealthy" && "异常"}
+                    {service.healthStatus === "unconfigured" && "未配置"}
+                    {service.healthStatus === "checking" && "检查中"}
+                  </Badge>
+                </TableCell>
+
+                <TableCell>
+                  {service.pid ? (
+                    <span className="font-mono text-sm">{service.pid}</span>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </TableCell>
+
+                <TableCell>
+                  {service.startedAt ? (
+                    <span className="text-sm">{new Date(service.startedAt).toLocaleString("zh-CN")}</span>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </TableCell>
+
+                <TableCell>
+                  {service.dependencies && service.dependencies.length > 0 ? (
+                    <Badge variant="secondary" className="text-xs">
+                      {service.dependencies.length} 个依赖
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground">无</span>
+                  )}
+                </TableCell>
+
+                <TableCell className="text-right">
+                  <TooltipProvider>
+                    <div className="flex justify-end gap-1">
+                      {service.status === "stopped" || service.status === "error" ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="sm" variant="ghost" onClick={() => handleStart(service.id, service.name)}>
+                              <Play className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>启动服务</TooltipContent>
+                        </Tooltip>
+                      ) : service.status === "running" ? (
+                        <>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="sm" variant="ghost" onClick={() => handleRestart(service.id, service.name)}>
+                                <RotateCw className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>重启服务</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="sm" variant="ghost" onClick={() => handleStop(service.id, service.name)}>
+                                <Square className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>停止服务</TooltipContent>
+                          </Tooltip>
+                        </>
+                      ) : null}
+
+                      <DropdownMenu>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="ghost">
+                                <Settings className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>更多操作</TooltipContent>
+                        </Tooltip>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => onEdit?.(service.id)}>编辑服务</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onDelete?.(service.id)} className="text-destructive">
+                            删除服务
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </TooltipProvider>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </Card>
+  )
+}

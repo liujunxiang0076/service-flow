@@ -1,0 +1,123 @@
+node_modules
+.env
+.env.local
+.env.example
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Diagnostic reports
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage
+*.lcov
+
+# Dependency directories
+bower_components
+jspm_packages
+.webpack
+.cache
+
+# Build output
+dist
+build
+out
+public/build
+.next
+.nuxt
+.svelte-kit
+target
+tmp
+temp
+
+# IDE / Editor
+.vscode
+.idea
+*.swp
+*.swo
+*.iml
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+# Yarn / pnpm / npm
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
+.npm
+.yarn-integrity
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+.eggs/
+.python-version
+
+# Rust / Cargo
+target/
+Cargo.lock
+
+# Go
+bin/
+pkg/
+*.test
+
+# Mono / .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Java / JVM
+*.class
+*.jar
+*.war
+*.ear
+*.iml
+.gradle
+.gradle/
+build/
+
+# Misc
+*.orig
+*.rej
+*.bak
+*.tmp
+*.patch

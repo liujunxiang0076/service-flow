@@ -1,0 +1,48 @@
+[package]
+name = "service-flow"
+version = "1.0.0"
+description = "服务管理和编排工具"
+authors = ["ServiceFlow Team"]
+license = "MIT"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tauri = { version = "^2.0.0", features = [] }
+serde = { version = "^1.0", features = ["derive"] }
+serde_json = "^1.0"
+tokio = { version = "^1.35", features = ["full"] }
+log = "^0.4"
+futures = "^0.3"
+thiserror = "^1.0"
+chrono = "^0.4"
+lazy_static = "^1.4"
+simple_logger = "^4.2"
+
+# 用于HTTP健康检查
+reqwest = { version = "^0.11", features = ["blocking"] }
+
+# 用于进程管理
+sysinfo = "^0.29"
+
+# 用于Web服务器和WebSocket
+tokio-tungstenite = { version = "^0.21" }
+axum = { version = "^0.6", features = ["ws"] }
+
+# 用于配置文件管理
+config = "^0.14"
+
+# 用于数据库管理（仅使用 sqlx 的 sqlite 支持，避免重复链接 sqlite3）
+sqlx = { version = "^0.7", features = ["sqlite", "runtime-tokio"] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[build-dependencies]
+tauri-build = { version = "^2.0.0", features = [] }
+
+[[bin]]
+name = "service-flow"
+path = "src/main.rs"

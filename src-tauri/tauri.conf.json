@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schema.tauri.app/config/2.0",
+  "productName": "ServiceFlow",
+  "version": "1.0.0",
+  "identifier": "com.serviceflow.app",
+  "build": {
+    "beforeDevCommand": "pnpm run dev",
+    "beforeBuildCommand": "pnpm run build",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../dist"
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "Utility",
+    "shortDescription": "服务管理和编排工具",
+    "longDescription": "ServiceFlow是一个服务管理和编排工具，用于管理多个相互依赖的服务或任务。"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "ServiceFlow",
+        "width": 1400,
+        "height": 900,
+        "resizable": true,
+        "fullscreen": false,
+        "minWidth": 1200,
+        "minHeight": 700
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
+    }
+  }
+}

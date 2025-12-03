@@ -1,0 +1,96 @@
+{
+  "settings": {
+    "serverPort": 8899,
+    "autoStart": true
+  },
+  "groups": [
+    {
+      "id": "program1-group",
+      "name": "程序1依赖服务组",
+      "delay": 0,
+      "tasks": [
+        {
+          "id": "redis",
+          "name": "Redis",
+          "type": "cmd",
+          "path": "D:\\Redis\\redis-server.exe",
+          "workDir": "D:\\Redis\\",
+          "args": "redis.conf",
+          "autoStart": true,
+          "dependencies": [],
+          "healthCheck": {
+            "type": "tcp",
+            "host": "localhost",
+            "port": 6379,
+            "interval": 10,
+            "timeout": 5
+          }
+        },
+        {
+          "id": "tomcat",
+          "name": "Tomcat",
+          "type": "cmd",
+          "path": "D:\\Tomcat\\bin\\startup.bat",
+          "workDir": "D:\\Tomcat\\bin\\",
+          "args": "",
+          "autoStart": true,
+          "dependencies": ["redis"],
+          "healthCheck": {
+            "type": "http",
+            "url": "http://localhost:8080",
+            "interval": 10,
+            "timeout": 5
+          }
+        },
+        {
+          "id": "nginx",
+          "name": "Nginx",
+          "type": "cmd",
+          "path": "D:\\Nginx\\nginx.exe",
+          "workDir": "D:\\Nginx\\",
+          "args": "",
+          "autoStart": true,
+          "dependencies": ["tomcat"],
+          "healthCheck": {
+            "type": "http",
+            "url": "http://localhost:80",
+            "interval": 10,
+            "timeout": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "program2-group",
+      "name": "程序2服务组",
+      "delay": 5000,
+      "tasks": [
+        {
+          "id": "program2",
+          "name": "程序2",
+          "type": "cmd",
+          "path": "D:\\Program2\\start.bat",
+          "workDir": "D:\\Program2\\",
+          "args": "",
+          "autoStart": true
+        }
+      ]
+    },
+    {
+      "id": "test-group",
+      "name": "测试服务组",
+      "delay": 0,
+      "tasks": [
+        {
+          "id": "ping-test",
+          "name": "Ping Test (日志测试)",
+          "type": "cmd",
+          "path": "E:\\code\\Project\\service-flow\\test-ping.bat",
+          "workDir": "E:\\code\\Project\\service-flow\\",
+          "args": "",
+          "autoStart": false
+        }
+      ]
+    }
+  ]
+}
