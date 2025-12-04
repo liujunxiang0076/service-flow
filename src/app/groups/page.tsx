@@ -127,14 +127,18 @@ export default function GroupsPage() {
 
           <div className="space-y-4">
             {filteredGroups.length > 0 ? (
-              filteredGroups.map((group) => (
-                <ServiceGroupCard 
-                  key={group.id} 
-                  group={group} 
-                  onEdit={() => setEditingGroup(group)}
-                  onDelete={() => setDeletingGroup(group)}
-                />
-              ))
+              filteredGroups.map((group) => {
+                const appName = applications.find((app) => app.id === group.applicationId)?.name
+                return (
+                  <ServiceGroupCard
+                    key={group.id}
+                    group={group}
+                    applicationName={appName}
+                    onEdit={() => setEditingGroup(group)}
+                    onDelete={() => setDeletingGroup(group)}
+                  />
+                )
+              })
             ) : (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-12">
                 <p className="text-sm text-muted-foreground">未找到匹配的分组</p>

@@ -12,13 +12,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 interface ServiceGroupCardProps {
   group: ServiceGroup
+  applicationName?: string
   onStart?: (groupId: string) => void
   onStop?: (groupId: string) => void
   onEdit?: (groupId: string) => void
   onDelete?: (groupId: string) => void
 }
 
-export function ServiceGroupCard({ group, onStart, onStop, onEdit, onDelete }: ServiceGroupCardProps) {
+export function ServiceGroupCard({ group, applicationName, onStart, onStop, onEdit, onDelete }: ServiceGroupCardProps) {
   const [expanded, setExpanded] = useState(true)
 
   const runningCount = group.services.filter((s) => s.status === "running").length
@@ -46,7 +47,14 @@ export function ServiceGroupCard({ group, onStart, onStop, onEdit, onDelete }: S
             </TooltipProvider>
 
             <div>
-              <h3 className="text-lg font-semibold text-foreground">{group.name}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-foreground">{group.name}</h3>
+                {applicationName && (
+                  <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
+                    {applicationName}
+                  </Badge>
+                )}
+              </div>
               {group.description && <p className="text-sm text-muted-foreground">{group.description}</p>}
             </div>
           </div>
