@@ -58,7 +58,7 @@ export function ApplicationDialog({
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    icon: "Layers",
+    icon: "",
     groupIds: [] as string[],
   })
 
@@ -67,11 +67,11 @@ export function ApplicationDialog({
       setFormData({
         name: initialData.name,
         description: initialData.description || "",
-        icon: initialData.icon || "Layers",
+        icon: initialData.icon || "",
         groupIds: initialData.groupIds || [],
       })
     } else if (open && mode === "create") {
-      setFormData({ name: "", description: "", icon: "Layers", groupIds: [] })
+      setFormData({ name: "", description: "", icon: "", groupIds: [] })
     }
   }, [open, initialData, mode])
 

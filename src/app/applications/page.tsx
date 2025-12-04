@@ -94,7 +94,7 @@ export default function ApplicationsPage() {
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {applications.map((app) => {
-              const Icon = iconMap[app.icon || "Layers"]
+              const Icon = app.icon ? iconMap[app.icon] : null
               const appGroups = groups.filter((g) => app.groupIds.includes(g.id))
               const totalServices = appGroups.reduce((acc, g) => acc + g.services.length, 0)
               const runningServices = appGroups.reduce(
@@ -108,7 +108,13 @@ export default function ApplicationsPage() {
                     <div className="mb-4 flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <div className="rounded-lg bg-primary/10 p-3">
-                          <Icon className="h-6 w-6 text-primary" />
+                          {Icon ? (
+                            <Icon className="h-6 w-6 text-primary" />
+                          ) : (
+                            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
+                              {(app.name || "?").charAt(0)}
+                            </span>
+                          )}
                         </div>
                         <div>
                           <h3 className="text-lg font-semibold text-foreground">{app.name}</h3>
