@@ -270,7 +270,7 @@ export default function LogsPage() {
             </div>
 
             {/* Logs Container */}
-            <div className="flex-1 overflow-hidden px-8 pb-8">
+            <div className="flex-1 overflow-hidden">
             <Card className="flex h-full flex-col overflow-hidden">
               <div ref={logContainerRef} className="flex-1 overflow-y-auto p-4 font-mono text-sm">
                 {filteredLogs.map((log, index) => (
