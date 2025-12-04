@@ -264,75 +264,97 @@ export default function ApplicationsPage() {
             })}
           </div>
 
-          {deletingApp && (
-            <AlertDialog
-              open={!!deletingApp}
-              onOpenChange={(open) => {
-                if (!open) {
-                  setDeletingApp(null)
-                  setDeleteConfirmName("")
-                }
-              }}
-            >
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>删除应用</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    你可以选择只删除应用本身（前提是没有关联的分组和服务），或者强制删除应用并连带其所有分组和服务配置。
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
+          {deletingApp && (() => {
+            const appGroups =
+              config?.groups.filter((g) => deletingApp.groupIds.includes(g.id)) ?? []
+            const groupCount = appGroups.length
+            const serviceCount = appGroups.reduce((acc, g) => acc + g.services.length, 0)
+            const hasRelations = groupCount > 0 || serviceCount > 0
 
-                <div className="space-y-4 py-2">
-                  <div className="rounded-md border border-border p-3 space-y-2">
-                    <p className="text-sm font-medium">安全删除</p>
-                    <p className="text-xs text-muted-foreground">
-                      仅当应用下<strong>没有任何分组和服务</strong>时，才允许直接删除。否则会给予提示。
+            return (
+              <AlertDialog
+                open={!!deletingApp}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setDeletingApp(null)
+                    setDeleteConfirmName("")
+                  }
+                }}
+              >
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>删除应用</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      你可以选择只删除应用本身（前提是没有关联的分组和服务），或者强制删除应用并连带其所有分组和服务配置。
+                    </AlertDialogDescription>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      当前应用下共有
+                      <span className="mx-1 font-semibold text-foreground">{groupCount}</span>
+                      个分组、
+                      <span className="mx-1 font-semibold text-foreground">{serviceCount}</span>
+                      个服务。
                     </p>
-                    <Button
-                      variant="outline"
-                      className="mt-1"
+                  </AlertDialogHeader>
+
+                  <div className="space-y-4 py-2">
+                    <div className="rounded-md border border-border p-3 space-y-2">
+                      <p className="text-sm font-medium">安全删除</p>
+                      <p className="text-xs text-muted-foreground">
+                        仅当应用下<strong>没有任何分组和服务</strong>时，才允许直接删除。
+                      </p>
+                      {hasRelations && (
+                        <p className="text-xs text-destructive">
+                          当前应用仍有关联的分组和服务，请先在「分组管理」和「服务管理」中处理这些分组和服务，
+                          或使用下方的<strong>强制删除</strong>。
+                        </p>
+                      )}
+                      <Button
+                        variant="outline"
+                        className="mt-1"
+                        disabled={hasRelations}
+                        onClick={async () => {
+                          const ok = await handleSafeDelete(deletingApp)
+                          if (ok) {
+                            setDeletingApp(null)
+                            setDeleteConfirmName("")
+                          }
+                        }}
+                      >
+                        仅删除应用
+                      </Button>
+                    </div>
+
+                    <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 space-y-2">
+                      <p className="text-sm font-medium text-destructive">强制删除（危险操作）</p>
+                      <p className="text-xs text-muted-foreground">
+                        将<strong>同时删除应用及其关联的所有分组和服务配置</strong>，此操作不可恢复。请在下方输入应用名称以确认：
+                      </p>
+                      <Input
+                        placeholder={`请输入 “${deletingApp.name}” 以确认`}
+                        value={deleteConfirmName}
+                        onChange={(e) => setDeleteConfirmName(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>取消</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      disabled={deleteConfirmName !== deletingApp.name}
                       onClick={async () => {
-                        const ok = await handleSafeDelete(deletingApp)
-                        if (ok) {
-                          setDeletingApp(null)
-                          setDeleteConfirmName("")
-                        }
+                        await handleForceDelete(deletingApp)
+                        setDeletingApp(null)
+                        setDeleteConfirmName("")
                       }}
                     >
-                      仅删除应用
-                    </Button>
-                  </div>
-
-                  <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 space-y-2">
-                    <p className="text-sm font-medium text-destructive">强制删除（危险操作）</p>
-                    <p className="text-xs text-muted-foreground">
-                      将<strong>同时删除应用及其关联的所有分组和服务配置</strong>，此操作不可恢复。请在下方输入应用名称以确认：
-                    </p>
-                    <Input
-                      placeholder={`请输入 “${deletingApp.name}” 以确认`}
-                      value={deleteConfirmName}
-                      onChange={(e) => setDeleteConfirmName(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <AlertDialogFooter>
-                  <AlertDialogCancel>取消</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    disabled={deleteConfirmName !== deletingApp.name}
-                    onClick={async () => {
-                      await handleForceDelete(deletingApp)
-                      setDeletingApp(null)
-                      setDeleteConfirmName("")
-                    }}
-                  >
-                    强制删除应用及相关配置
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
+                      强制删除应用及相关配置
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )
+          })()}
 
           <Dialog open={!!selectedApp} onOpenChange={(open) => !open && setSelectedApp(null)}>
             <DialogContent className="sm:max-w-[600px]">
