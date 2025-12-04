@@ -187,31 +187,57 @@ export function ServiceDialog({
     })
   }
 
-  const handleSelectFile = () => {
-    const input = document.createElement("input")
-    input.type = "file"
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0]
-      if (file) {
-        setFormData({ ...formData, path: `Selected: ${file.name}` }) // Simplified
+  const handleSelectFile = async () => {
+    const tauri = typeof window !== "undefined" ? (window as any).__TAURI__ : undefined
+
+    if (tauri?.dialog?.open) {
+      const selected = await tauri.dialog.open({
+        title: "选择可执行文件",
+        multiple: false,
+      })
+      if (typeof selected === "string") {
+        setFormData({ ...formData, path: selected })
       }
+    } else {
+      const input = document.createElement("input")
+      input.type = "file"
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0]
+        if (file) {
+          // 浏览器环境无法获取绝对路径，只显示文件名
+          setFormData({ ...formData, path: file.name })
+        }
+      }
+      input.click()
     }
-    input.click()
   }
 
-  const handleSelectFolder = () => {
-    const input = document.createElement("input")
-    input.type = "file"
-    input.setAttribute("webkitdirectory", "")
-    input.setAttribute("directory", "")
-    input.onchange = (e) => {
-      const files = (e.target as HTMLInputElement).files
-      if (files && files.length > 0) {
-        const path = files[0].webkitRelativePath.split("/")[0]
-        setFormData({ ...formData, workDir: `Selected: ${path}` }) // Simplified
+  const handleSelectFolder = async () => {
+    const tauri = typeof window !== "undefined" ? (window as any).__TAURI__ : undefined
+
+    if (tauri?.dialog?.open) {
+      const selected = await tauri.dialog.open({
+        title: "选择工作目录",
+        directory: true,
+        multiple: false,
+      })
+      if (typeof selected === "string") {
+        setFormData({ ...formData, workDir: selected })
       }
+    } else {
+      const input = document.createElement("input")
+      input.type = "file"
+      input.setAttribute("webkitdirectory", "")
+      input.setAttribute("directory", "")
+      input.onchange = (e) => {
+        const files = (e.target as HTMLInputElement).files
+        if (files && files.length > 0) {
+          const path = files[0].webkitRelativePath.split("/")[0]
+          setFormData({ ...formData, workDir: path })
+        }
+      }
+      input.click()
     }
-    input.click()
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -354,6 +380,10 @@ export function ServiceDialog({
                   {serviceType === "batch" && "选择 .bat 批处理文件"}
                   {serviceType === "shell" && "选择 .sh Shell 脚本文件"}
                   {!["batch", "shell"].includes(serviceType) && "选择可执行程序 (.exe) 或脚本文件"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  在浏览器开发模式下，出于安全原因无法自动获取完整磁盘路径，选择文件后只会显示文件名，请手动填写绝对路径；
+                  在打包后的应用或 Tauri 窗口中，选择文件后会显示完整路径。
                 </p>
               </div>
 
