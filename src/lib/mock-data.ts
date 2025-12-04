@@ -122,8 +122,8 @@ export const mockApplications: Application[] = [
     description: "完整的电商系统，包含开发环境和前端服务",
     icon: "ShoppingCart",
     groupIds: ["group-1", "group-2"],
-    createdAt: new Date(Date.now() - 86400000 * 30),
-    updatedAt: new Date(Date.now() - 86400000 * 5),
+    createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
+    updatedAt: new Date(Date.now() - 86400000 * 5).toISOString(),
   },
   {
     id: "app-2",
@@ -131,8 +131,8 @@ export const mockApplications: Application[] = [
     description: "系统监控和可视化平台",
     icon: "BarChart",
     groupIds: ["group-3"],
-    createdAt: new Date(Date.now() - 86400000 * 15),
-    updatedAt: new Date(Date.now() - 86400000 * 2),
+    createdAt: new Date(Date.now() - 86400000 * 15).toISOString(),
+    updatedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
   },
 ]
 

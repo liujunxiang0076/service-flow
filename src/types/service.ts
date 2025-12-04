@@ -70,8 +70,8 @@ export interface Application {
   description?: string
   icon?: string
   groupIds: string[]
-  createdAt: Date
-  updatedAt: Date
+  createdAt: string
+  updatedAt: string
 }
 
 export interface ServerHealth {
@@ -92,4 +92,15 @@ export interface LogConfig {
   maxLines: number
   retention: number // in days
   level: "DEBUG" | "INFO" | "WARN" | "ERROR" | "ALL"
+}
+
+export interface Settings {
+  serverPort: number
+  autoStart: boolean
+}
+
+export interface Config {
+  settings: Settings
+  groups: ServiceGroup[]
+  applications: Application[]
 }

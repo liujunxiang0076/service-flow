@@ -9,9 +9,10 @@ import { Plus, Edit, Trash2, ShoppingCart, BarChart, MoreVertical, Play, Square,
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { CreateApplicationDialog } from "@/components/create-application-dialog"
-import { mockApplications, mockGroups } from "@/lib/mock-data"
 import { useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useConfig } from "@/hooks/use-config"
+import { Loader2 } from "lucide-react"
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ShoppingCart,
@@ -20,10 +21,22 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 }
 
 export default function ApplicationsPage() {
+  const { config, loading, createApplication } = useConfig()
   const [selectedApp, setSelectedApp] = useState<string | null>(null)
 
-  const selectedAppData = mockApplications.find((app) => app.id === selectedApp)
-  const selectedAppGroups = selectedAppData ? mockGroups.filter((g) => selectedAppData.groupIds.includes(g.id)) : []
+  const applications = config?.applications || []
+  const groups = config?.groups || []
+
+  const selectedAppData = applications.find((app) => app.id === selectedApp)
+  const selectedAppGroups = selectedAppData ? groups.filter((g) => selectedAppData.groupIds.includes(g.id)) : []
+
+  if (loading && !config) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-screen bg-background">
@@ -36,6 +49,8 @@ export default function ApplicationsPage() {
             description="管理包含多个服务分组的应用"
             actions={
               <CreateApplicationDialog
+                groups={groups}
+                onSubmit={createApplication}
                 trigger={
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
@@ -47,9 +62,9 @@ export default function ApplicationsPage() {
           />
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {mockApplications.map((app) => {
+            {applications.map((app) => {
               const Icon = iconMap[app.icon || "Layers"]
-              const appGroups = mockGroups.filter((g) => app.groupIds.includes(g.id))
+              const appGroups = groups.filter((g) => app.groupIds.includes(g.id))
               const totalServices = appGroups.reduce((acc, g) => acc + g.services.length, 0)
               const runningServices = appGroups.reduce(
                 (acc, g) => acc + g.services.filter((s) => s.status === "running").length,
@@ -150,7 +165,7 @@ export default function ApplicationsPage() {
                   </div>
 
                   <div className="border-t border-border bg-muted/50 px-6 py-3">
-                    <p className="text-xs text-muted-foreground">更新于 {app.updatedAt.toLocaleDateString("zh-CN")}</p>
+                    <p className="text-xs text-muted-foreground">更新于 {new Date(app.updatedAt).toLocaleDateString("zh-CN")}</p>
                   </div>
                 </Card>
               )

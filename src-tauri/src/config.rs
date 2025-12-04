@@ -13,6 +13,7 @@ pub enum ConfigError {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct HealthCheck {
     pub r#type: String,
     pub host: Option<String>,
@@ -23,6 +24,7 @@ pub struct HealthCheck {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Task {
     pub id: String,
     pub name: String,
@@ -36,23 +38,43 @@ pub struct Task {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Group {
     pub id: String,
     pub name: String,
     pub delay: u64,
+    #[serde(default)]
+    pub application_id: Option<String>,
+    #[serde(rename = "services")]
     pub tasks: Vec<Task>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Application {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub icon: String,
+    pub group_ids: Vec<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Settings {
     pub server_port: u16,
     pub auto_start: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Config {
     pub settings: Settings,
     pub groups: Vec<Group>,
+    #[serde(default)]
+    pub applications: Vec<Application>,
 }
 
 impl Default for Config {
@@ -63,6 +85,7 @@ impl Default for Config {
                 auto_start: false,
             },
             groups: Vec::new(),
+            applications: Vec::new(),
         }
     }
 }

@@ -16,14 +16,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
-import { mockGroups } from "@/lib/mock-data"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ShoppingCart, BarChart, Layers, Zap, Database, Cloud, Upload } from "lucide-react"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import type { ServiceGroup } from "@/types/service"
 
 interface CreateApplicationDialogProps {
   trigger?: React.ReactNode
   onSubmit?: (data: { name: string; description: string; icon: string; groupIds: string[] }) => void
+  groups: ServiceGroup[]
 }
 
 const iconOptions = [
@@ -35,7 +36,7 @@ const iconOptions = [
   { value: "Cloud", icon: Cloud, label: "云" },
 ]
 
-export function CreateApplicationDialog({ trigger, onSubmit }: CreateApplicationDialogProps) {
+export function CreateApplicationDialog({ trigger, onSubmit, groups }: CreateApplicationDialogProps) {
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
@@ -130,7 +131,7 @@ export function CreateApplicationDialog({ trigger, onSubmit }: CreateApplication
               <Label>选择服务分组 *</Label>
               <ScrollArea className="h-[180px] rounded-md border border-border p-4">
                 <div className="space-y-3">
-                  {mockGroups.map((group) => (
+                  {groups.map((group) => (
                     <div key={group.id} className="flex items-start space-x-3">
                       <Checkbox
                         id={`group-${group.id}`}
