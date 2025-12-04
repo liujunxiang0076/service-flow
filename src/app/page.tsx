@@ -16,15 +16,16 @@ import {
   ShoppingCart,
   BarChart,
   Loader2,
+  Plus,
 } from "lucide-react"
-import { mockGroups, mockApplications } from "@/lib/mock-data"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Link } from "react-router-dom"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Progress } from "@/components/ui/progress"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
+import { useConfig } from "@/hooks/use-config"
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ShoppingCart,
@@ -33,29 +34,26 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 }
 
 export default function DashboardPage() {
-  const [isLoading, setIsLoading] = useState(false)
+  const { config, loading, refreshConfig } = useConfig()
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
-  const handleRefresh = () => {
-    setIsLoading(true)
-    setTimeout(() => {
-      setIsLoading(false)
-    }, 1000)
+  const groups = config?.groups ?? []
+  const applications = config?.applications ?? []
+
+  const { totalServices, runningServices, stoppedServices, errorServices } = useMemo(() => {
+    const allServices = groups.flatMap((g) => g.services)
+    const total = allServices.length
+    const running = allServices.filter((s) => s.status === "running").length
+    const stopped = allServices.filter((s) => s.status === "stopped").length
+    const error = allServices.filter((s) => s.status === "error").length
+    return { totalServices: total, runningServices: running, stoppedServices: stopped, errorServices: error }
+  }, [groups])
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await refreshConfig()
+    setIsRefreshing(false)
   }
-
-  // Calculate stats from mock data
-  const totalServices = mockGroups.reduce((acc, group) => acc + group.services.length, 0)
-  const runningServices = mockGroups.reduce(
-    (acc, group) => acc + group.services.filter((s) => s.status === "running").length,
-    0,
-  )
-  const stoppedServices = mockGroups.reduce(
-    (acc, group) => acc + group.services.filter((s) => s.status === "stopped").length,
-    0,
-  )
-  const errorServices = mockGroups.reduce(
-    (acc, group) => acc + group.services.filter((s) => s.status === "error").length,
-    0,
-  )
 
   // Recent activities mock data
   const recentActivities = [
@@ -79,8 +77,8 @@ export default function DashboardPage() {
               actions={
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isLoading}>
-                      <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                    <Button variant="outline" size="icon" onClick={handleRefresh} disabled={loading || isRefreshing}>
+                      <RefreshCw className={cn("h-4 w-4", (loading || isRefreshing) && "animate-spin")} />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>刷新数据</TooltipContent>
@@ -94,26 +92,26 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">应用数</p>
-                    {isLoading ? (
+                    {loading ? (
                       <div className="mt-2 h-9 flex items-center">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                       </div>
                     ) : (
-                      <p className="mt-2 text-3xl font-bold text-foreground">{mockApplications.length}</p>
+                      <p className="mt-2 text-3xl font-bold text-foreground">{applications.length}</p>
                     )}
                   </div>
                   <div className="rounded-lg bg-primary/10 p-3">
                     <Layers className="h-6 w-6 text-primary" />
                   </div>
                 </div>
-                <p className="mt-4 text-xs text-muted-foreground">管理 {mockGroups.length} 个服务分组</p>
+                <p className="mt-4 text-xs text-muted-foreground">管理 {groups.length} 个服务分组</p>
               </Card>
 
               <Card className="p-6 transition-shadow hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">总服务数</p>
-                    {isLoading ? (
+                    {loading ? (
                       <div className="mt-2 h-9 flex items-center">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                       </div>
@@ -125,14 +123,14 @@ export default function DashboardPage() {
                     <Server className="h-6 w-6 text-accent" />
                   </div>
                 </div>
-                <p className="mt-4 text-xs text-muted-foreground">跨 {mockGroups.length} 个分组</p>
+                <p className="mt-4 text-xs text-muted-foreground">跨 {groups.length} 个分组</p>
               </Card>
 
               <Card className="p-6 transition-shadow hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">运行中</p>
-                    {isLoading ? (
+                    {loading ? (
                       <div className="mt-2 h-9 flex items-center">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                       </div>
@@ -145,11 +143,15 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="mt-4">
-                  <div className="mb-1 flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">运行率</span>
-                    <span className="font-medium">{((runningServices / totalServices) * 100).toFixed(1)}%</span>
-                  </div>
-                  <Progress value={(runningServices / totalServices) * 100} className="h-1.5" />
+                  {totalServices > 0 && (
+                    <>
+                      <div className="mb-1 flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">运行率</span>
+                        <span className="font-medium">{((runningServices / totalServices) * 100).toFixed(1)}%</span>
+                      </div>
+                      <Progress value={(runningServices / totalServices) * 100} className="h-1.5" />
+                    </>
+                  )}
                 </div>
               </Card>
 
@@ -157,7 +159,7 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">异常服务</p>
-                    {isLoading ? (
+                    {loading ? (
                       <div className="mt-2 h-9 flex items-center">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                       </div>
@@ -187,9 +189,22 @@ export default function DashboardPage() {
                   </Link>
                 </div>
 
-                {mockApplications.map((app) => {
+                {applications.length === 0 && !loading && (
+                  <Card className="flex min-h-[180px] flex-col items-center justify-center gap-2 border-dashed border-border bg-muted/40">
+                    <p className="text-sm font-medium text-muted-foreground">当前还没有任何应用</p>
+                    <p className="text-xs text-muted-foreground">创建一个应用来组织服务分组和服务，便于统一管理</p>
+                    <Link to="/applications">
+                      <Button size="sm" className="mt-2">
+                        <Plus className="mr-2 h-4 w-4" />
+                        去创建应用
+                      </Button>
+                    </Link>
+                  </Card>
+                )}
+
+                {applications.map((app) => {
                   const Icon = iconMap[app.icon || "Layers"] || Layers
-                  const appGroups = mockGroups.filter((g) => app.groupIds.includes(g.id))
+                  const appGroups = groups.filter((g) => app.groupIds.includes(g.id))
                   const totalAppServices = appGroups.reduce((acc, g) => acc + g.services.length, 0)
                   const runningAppServices = appGroups.reduce(
                     (acc, g) => acc + g.services.filter((s) => s.status === "running").length,
