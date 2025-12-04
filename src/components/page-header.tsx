@@ -12,9 +12,10 @@ interface PageHeaderProps {
   title: string
   description?: string
   actions?: ReactNode
+  showGlobalActions?: boolean
 }
 
-export function PageHeader({ title, description, actions }: PageHeaderProps) {
+export function PageHeader({ title, description, actions, showGlobalActions = false }: PageHeaderProps) {
   const [showShortcuts, setShowShortcuts] = useState(false)
 
   return (
@@ -34,24 +35,24 @@ export function PageHeader({ title, description, actions }: PageHeaderProps) {
 
         {/* 右侧搜索 + 操作区：在空间不足时整体换行到下一行 */}
         <div className="flex flex-wrap items-center justify-end gap-3 lg:flex-shrink-0">
-          <GlobalSearch />
-          <div className="flex flex-wrap items-center gap-2 justify-end">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowShortcuts(true)}
-                  >
-                    <Keyboard className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>键盘快捷键 (⌘?)</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            {actions}
-          </div>
+          {showGlobalActions && (
+            <>
+              <GlobalSearch />
+              <div className="flex flex-wrap items-center gap-2 justify-end">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={() => setShowShortcuts(true)}>
+                        <Keyboard className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>键盘快捷键 (⌘?)</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </>
+          )}
+          <div className="flex flex-wrap items-center gap-2 justify-end">{actions}</div>
         </div>
       </div>
 

@@ -75,6 +75,7 @@ export default function DashboardPage() {
             <PageHeader
               title="服务管理仪表盘"
               description="实时监控和管理您的所有服务"
+              showGlobalActions={true}
               actions={
                 <Tooltip>
                   <TooltipTrigger asChild>

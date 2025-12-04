@@ -73,7 +73,7 @@ export default function LogsPage() {
 
         <main className="flex flex-1 flex-col overflow-hidden">
           <div className="container mx-auto flex h-full flex-col p-8">
-            <div className="shrink-0 space-y-4">
+            <div className="shrink-0">
             <PageHeader
               title="日志管理"
               description="实时查看和搜索服务日志"
