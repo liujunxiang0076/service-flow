@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { NotificationToast } from "@/components/notification-toast"
 import { KeyboardShortcutsProvider } from "@/components/keyboard-shortcuts-provider"
+import { SidebarProvider } from "@/components/sidebar-context"
 import DashboardPage from "./app/page"
 import ApplicationsPage from "./app/applications/page"
 import GroupsPage from "./app/groups/page"
@@ -15,7 +16,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <KeyboardShortcutsProvider>
-         <div className="font-sans antialiased bg-background text-foreground min-h-screen">
+        <SidebarProvider>
+          <div className="font-sans antialiased bg-background text-foreground min-h-screen">
             <Routes>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/applications" element={<ApplicationsPage />} />
@@ -28,7 +30,8 @@ export default function App() {
               <Route path="/login" element={<LoginPage />} />
             </Routes>
             <NotificationToast />
-         </div>
+          </div>
+        </SidebarProvider>
       </KeyboardShortcutsProvider>
     </BrowserRouter>
   )

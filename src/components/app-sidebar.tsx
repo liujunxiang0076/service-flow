@@ -13,9 +13,9 @@ import {
 } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 import { cn } from "@/lib/utils"
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useSidebar } from "@/components/sidebar-context"
 
 const navigation = [
   { name: "仪表盘", href: "/", icon: LayoutDashboard },
@@ -30,14 +30,14 @@ const navigation = [
 
 export function AppSidebar() {
   const { pathname } = useLocation()
-  const [collapsed, setCollapsed] = useState(false)
+  const { collapsed, toggle } = useSidebar()
 
   return (
     <TooltipProvider delayDuration={0}>
       <div
         className={cn(
           "flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",
-          collapsed ? "w-16" : "w-64",
+          collapsed ? "w-14" : "w-60",
         )}
       >
         {/* Header / Logo */}
@@ -46,7 +46,7 @@ export function AppSidebar() {
           <span 
             className={cn(
               "text-lg font-semibold text-sidebar-foreground truncate transition-all duration-300 overflow-hidden", 
-              collapsed ? "max-w-0 opacity-0 ml-0" : "max-w-[200px] opacity-100 ml-2"
+              collapsed ? "max-w-0 opacity-0 ml-0" : "max-w-[180px] opacity-100 ml-2"
             )}
           >
             ServiceFlow
@@ -63,7 +63,7 @@ export function AppSidebar() {
                 to={item.href}
                 className={cn(
                   "flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                  collapsed && "justify-center px-2",
+                  collapsed && "justify-center px-1.5",
                   isActive
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
@@ -73,7 +73,7 @@ export function AppSidebar() {
                 <span 
                   className={cn(
                     "overflow-hidden transition-all duration-300 whitespace-nowrap",
-                    collapsed ? "max-w-0 opacity-0 ml-0" : "max-w-[200px] opacity-100 ml-3"
+                    collapsed ? "max-w-0 opacity-0 ml-0" : "max-w-[180px] opacity-100 ml-3"
                   )}
                 >
                   {item.name}
@@ -102,7 +102,7 @@ export function AppSidebar() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setCollapsed(!collapsed)}
+                  onClick={toggle}
                   className={cn(
                     "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
                     collapsed ? "w-full justify-center" : "w-full justify-start px-2",
