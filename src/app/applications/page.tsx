@@ -8,11 +8,12 @@ import { Badge } from "@/components/ui/badge"
 import { Plus, Edit, Trash2, ShoppingCart, BarChart, MoreVertical, Play, Square, Layers } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { CreateApplicationDialog } from "@/components/create-application-dialog"
+import { ApplicationDialog } from "@/components/create-application-dialog"
 import { useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useConfig } from "@/hooks/use-config"
 import { Loader2 } from "lucide-react"
+import type { Application } from "@/types/service"
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ShoppingCart,
@@ -21,14 +22,21 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 }
 
 export default function ApplicationsPage() {
-  const { config, loading, createApplication } = useConfig()
+  const { config, loading, createApplication, updateApplication, deleteApplication } = useConfig()
   const [selectedApp, setSelectedApp] = useState<string | null>(null)
+  const [editingApp, setEditingApp] = useState<Application | null>(null)
 
   const applications = config?.applications || []
   const groups = config?.groups || []
 
   const selectedAppData = applications.find((app) => app.id === selectedApp)
   const selectedAppGroups = selectedAppData ? groups.filter((g) => selectedAppData.groupIds.includes(g.id)) : []
+
+  const handleDelete = async (appId: string) => {
+    if (confirm("确定要删除这个应用吗？此操作无法撤销。")) {
+      await deleteApplication(appId)
+    }
+  }
 
   if (loading && !config) {
     return (
@@ -48,7 +56,7 @@ export default function ApplicationsPage() {
             title="应用管理"
             description="管理包含多个服务分组的应用"
             actions={
-              <CreateApplicationDialog
+              <ApplicationDialog
                 groups={groups}
                 onSubmit={createApplication}
                 trigger={
@@ -60,6 +68,20 @@ export default function ApplicationsPage() {
               />
             }
           />
+
+          {editingApp && (
+            <ApplicationDialog
+              groups={groups}
+              mode="edit"
+              initialData={editingApp}
+              open={!!editingApp}
+              onOpenChange={(open) => !open && setEditingApp(null)}
+              onSubmit={async (data) => {
+                await updateApplication(data)
+                setEditingApp(null)
+              }}
+            />
+          )}
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {applications.map((app) => {
@@ -98,11 +120,14 @@ export default function ApplicationsPage() {
                             <TooltipContent>更多操作</TooltipContent>
                           </Tooltip>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setEditingApp(app)}>
                               <Edit className="mr-2 h-4 w-4" />
                               编辑应用
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleDelete(app.id)}
+                            >
                               <Trash2 className="mr-2 h-4 w-4" />
                               删除应用
                             </DropdownMenuItem>
@@ -141,7 +166,12 @@ export default function ApplicationsPage() {
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button size="sm" variant="outline" className="flex-1 bg-transparent">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="flex-1 bg-transparent"
+                              disabled={totalServices === 0}
+                            >
                               <Play className="mr-2 h-4 w-4" />
                               启动
                             </Button>
@@ -153,7 +183,12 @@ export default function ApplicationsPage() {
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button size="sm" variant="outline" className="flex-1 bg-transparent">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="flex-1 bg-transparent"
+                              disabled={totalServices === 0}
+                            >
                               <Square className="mr-2 h-4 w-4" />
                               停止
                             </Button>

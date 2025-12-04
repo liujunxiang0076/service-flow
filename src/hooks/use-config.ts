@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { api } from "@/lib/api"
-import type { Config, Application } from "@/types/service"
+import type { Config, Application, ServiceGroup } from "@/types/service"
 import { toast } from "@/hooks/use-toast"
 
 export function useConfig() {
@@ -58,28 +58,109 @@ export function useConfig() {
       const newApp: Application = {
         ...appData,
         id: `app-${Date.now()}`,
-        createdAt: new Date().toISOString(), // Backend expects string now? Rust struct uses string for dates based on my previous edit?
-        // Wait, in Rust I defined created_at as String. In TS interface Application has Date.
-        // I should check TS definition again.
+        createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
-
-      // In Rust struct: pub created_at: String,
-      // In TS interface: createdAt: Date
-      // I need to be careful here. JSON serialization of Date usually results in ISO string.
-      // But if TS expects Date object, I should probably keep it as Date in frontend state,
-      // but when sending to backend, invoke will serialize it.
-      // However, if I receive it from backend as string, TS might be confused if I defined it as Date.
-      // Let's assume for now I should treat it as string in TS to match Rust exactly, or handle conversion.
-      // Let's look at the TS definition again.
       
-      // Update config
       const newConfig = {
         ...config,
         applications: [...config.applications, newApp],
       }
 
       return await saveConfig(newConfig as unknown as Config) 
+    },
+    [config, saveConfig],
+  )
+
+  const updateApplication = useCallback(
+    async (app: Application) => {
+      if (!config) return false
+
+      const updatedApp = {
+        ...app,
+        updatedAt: new Date().toISOString(),
+      }
+
+      const newApplications = config.applications.map((a) => 
+        a.id === app.id ? updatedApp : a
+      )
+
+      const newConfig = {
+        ...config,
+        applications: newApplications,
+      }
+
+      return await saveConfig(newConfig as unknown as Config)
+    },
+    [config, saveConfig],
+  )
+
+  const deleteApplication = useCallback(
+    async (appId: string) => {
+      if (!config) return false
+
+      const newApplications = config.applications.filter((a) => a.id !== appId)
+
+      const newConfig = {
+        ...config,
+        applications: newApplications,
+      }
+
+      return await saveConfig(newConfig as unknown as Config)
+    },
+    [config, saveConfig],
+  )
+
+  const createGroup = useCallback(
+    async (groupData: Omit<ServiceGroup, "id" | "services" | "order" | "dependencies">) => {
+      if (!config) return false
+
+      const newGroup: ServiceGroup = {
+        ...groupData,
+        id: `group-${Date.now()}`,
+        services: [],
+        order: config.groups.length + 1,
+        dependencies: [],
+      }
+
+      const newConfig = {
+        ...config,
+        groups: [...config.groups, newGroup],
+      }
+
+      return await saveConfig(newConfig as unknown as Config)
+    },
+    [config, saveConfig],
+  )
+
+  const updateGroup = useCallback(
+    async (group: ServiceGroup) => {
+      if (!config) return false
+
+      const newGroups = config.groups.map((g) => (g.id === group.id ? group : g))
+
+      const newConfig = {
+        ...config,
+        groups: newGroups,
+      }
+
+      return await saveConfig(newConfig as unknown as Config)
+    },
+    [config, saveConfig],
+  )
+
+  const deleteGroup = useCallback(
+    async (groupId: string) => {
+      if (!config) return false
+
+      const newGroups = config.groups.filter((g) => g.id !== groupId)
+
+      const newConfig = {
+        ...config,
+        groups: newGroups,
+      }
+
+      return await saveConfig(newConfig as unknown as Config)
     },
     [config, saveConfig],
   )
@@ -95,5 +176,10 @@ export function useConfig() {
     refreshConfig: fetchConfig,
     saveConfig,
     createApplication,
+    updateApplication,
+    deleteApplication,
+    createGroup,
+    updateGroup,
+    deleteGroup,
   }
 }

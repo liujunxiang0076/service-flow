@@ -3,25 +3,45 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Search, Filter } from "lucide-react"
+import { Plus, Search, Filter, Loader2 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ServiceGroupCard } from "@/components/service-group-card"
-import { CreateGroupDialog } from "@/components/create-group-dialog"
-import { mockGroups, mockApplications } from "@/lib/mock-data"
+import { GroupDialog } from "@/components/create-group-dialog"
 import { useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useConfig } from "@/hooks/use-config"
+import type { ServiceGroup } from "@/types/service"
 
 export default function GroupsPage() {
+  const { config, loading, createGroup, updateGroup, deleteGroup } = useConfig()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedApp, setSelectedApp] = useState<string>("all")
+  const [editingGroup, setEditingGroup] = useState<ServiceGroup | null>(null)
 
-  const filteredGroups = mockGroups.filter((group) => {
+  const groups = config?.groups || []
+  const applications = config?.applications || []
+
+  const filteredGroups = groups.filter((group) => {
     const matchesSearch =
       group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       group.description?.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesApp = selectedApp === "all" || group.applicationId === selectedApp
     return matchesSearch && matchesApp
   })
+
+  const handleDelete = async (groupId: string) => {
+    if (confirm("确定要删除这个服务分组吗？此操作无法撤销。")) {
+      await deleteGroup(groupId)
+    }
+  }
+
+  if (loading && !config) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-screen bg-background">
@@ -33,7 +53,9 @@ export default function GroupsPage() {
             title="分组管理"
             description="管理服务分组和批量操作"
             actions={
-              <CreateGroupDialog
+              <GroupDialog
+                applications={applications}
+                onSubmit={createGroup}
                 trigger={
                   <TooltipProvider>
                     <Tooltip>
@@ -50,6 +72,20 @@ export default function GroupsPage() {
               />
             }
           />
+
+          {editingGroup && (
+            <GroupDialog
+              applications={applications}
+              mode="edit"
+              initialData={editingGroup}
+              open={!!editingGroup}
+              onOpenChange={(open) => !open && setEditingGroup(null)}
+              onSubmit={async (data) => {
+                await updateGroup(data)
+                setEditingGroup(null)
+              }}
+            />
+          )}
 
           <div className="mb-6 flex gap-4">
             <div className="relative flex-1">
@@ -68,7 +104,7 @@ export default function GroupsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">所有应用</SelectItem>
-                {mockApplications.map((app) => (
+                {applications.map((app) => (
                   <SelectItem key={app.id} value={app.id}>
                     {app.name}
                   </SelectItem>
@@ -79,7 +115,14 @@ export default function GroupsPage() {
 
           <div className="space-y-4">
             {filteredGroups.length > 0 ? (
-              filteredGroups.map((group) => <ServiceGroupCard key={group.id} group={group} />)
+              filteredGroups.map((group) => (
+                <ServiceGroupCard 
+                  key={group.id} 
+                  group={group} 
+                  onEdit={() => setEditingGroup(group)}
+                  onDelete={() => handleDelete(group.id)}
+                />
+              ))
             ) : (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-12">
                 <p className="text-sm text-muted-foreground">未找到匹配的分组</p>

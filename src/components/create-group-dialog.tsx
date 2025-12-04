@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -17,20 +17,32 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { mockApplications } from "@/lib/mock-data"
+import type { Application, ServiceGroup } from "@/types/service"
 
-interface CreateGroupDialogProps {
+interface GroupDialogProps {
   trigger?: React.ReactNode
-  onSubmit?: (data: {
-    name: string
-    description: string
-    applicationId?: string
-    startupDelay: number
-  }) => void
+  onSubmit?: (data: any) => void
+  applications: Application[]
+  mode?: "create" | "edit"
+  initialData?: ServiceGroup
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-export function CreateGroupDialog({ trigger, onSubmit }: CreateGroupDialogProps) {
-  const [open, setOpen] = useState(false)
+export function GroupDialog({ 
+  trigger, 
+  onSubmit, 
+  applications,
+  mode = "create",
+  initialData,
+  open: controlledOpen,
+  onOpenChange: setControlledOpen
+}: GroupDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = controlledOpen !== undefined
+  const open = isControlled ? controlledOpen : internalOpen
+  const setOpen = isControlled ? setControlledOpen! : setInternalOpen
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -38,24 +50,39 @@ export function CreateGroupDialog({ trigger, onSubmit }: CreateGroupDialogProps)
     startupDelay: 0,
   })
 
+  useEffect(() => {
+    if (open && initialData && mode === "edit") {
+      setFormData({
+        name: initialData.name,
+        description: initialData.description || "",
+        applicationId: initialData.applicationId || "",
+        startupDelay: initialData.startupDelay || 0,
+      })
+    } else if (open && mode === "create") {
+      setFormData({ name: "", description: "", applicationId: "", startupDelay: 0 })
+    }
+  }, [open, initialData, mode])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit?.({
+    const data = {
       ...formData,
-      applicationId: formData.applicationId || undefined,
-    })
+      applicationId: formData.applicationId === "none" ? undefined : formData.applicationId,
+    }
+    onSubmit?.(mode === "edit" ? { ...initialData, ...data } : data)
     setOpen(false)
-    setFormData({ name: "", description: "", applicationId: "", startupDelay: 0 })
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger || <Button>创建分组</Button>}</DialogTrigger>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-[500px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>创建服务分组</DialogTitle>
-            <DialogDescription>创建一个新的服务分组来组织和管理相关服务</DialogDescription>
+            <DialogTitle>{mode === "create" ? "创建服务分组" : "编辑服务分组"}</DialogTitle>
+            <DialogDescription>
+              {mode === "create" ? "创建一个新的服务分组来组织和管理相关服务" : "修改服务分组信息"}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
@@ -84,7 +111,7 @@ export function CreateGroupDialog({ trigger, onSubmit }: CreateGroupDialogProps)
             <div className="grid gap-2">
               <Label htmlFor="application">所属应用</Label>
               <Select
-                value={formData.applicationId}
+                value={formData.applicationId || "none"}
                 onValueChange={(value) => setFormData({ ...formData, applicationId: value })}
               >
                 <SelectTrigger id="application">
@@ -92,7 +119,7 @@ export function CreateGroupDialog({ trigger, onSubmit }: CreateGroupDialogProps)
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">不属于任何应用</SelectItem>
-                  {mockApplications.map((app) => (
+                  {applications.map((app) => (
                     <SelectItem key={app.id} value={app.id}>
                       {app.name}
                     </SelectItem>
@@ -120,7 +147,7 @@ export function CreateGroupDialog({ trigger, onSubmit }: CreateGroupDialogProps)
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               取消
             </Button>
-            <Button type="submit">创建</Button>
+            <Button type="submit">{mode === "create" ? "创建" : "保存"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

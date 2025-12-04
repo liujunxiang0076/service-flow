@@ -1,25 +1,77 @@
 import { invoke } from "@tauri-apps/api/core"
 import type { Config } from "@/types/service"
+import { mockGroups, mockApplications } from "@/lib/mock-data"
+
+const isTauri = () => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 
 export const api = {
   // Config
-  getConfig: () => invoke<Config>("get_config"),
-  saveConfig: (config: Config) => invoke<void>("save_config", { cfg: config }),
+  getConfig: async () => {
+    if (!isTauri()) {
+      console.warn("Not running in Tauri environment, returning mock config")
+      return {
+        settings: { serverPort: 8899, autoStart: false },
+        groups: mockGroups,
+        applications: mockApplications
+      } as Config
+    }
+    return invoke<Config>("get_config")
+  },
+  saveConfig: async (config: Config) => {
+    if (!isTauri()) {
+      console.warn("Not running in Tauri environment, mock save config")
+      return
+    }
+    return invoke<void>("save_config", { cfg: config })
+  },
 
   // Task Management
-  startTask: (taskId: string) => invoke<void>("start_task", { taskId }),
-  stopTask: (taskId: string) => invoke<void>("stop_task", { taskId }),
-  restartTask: (taskId: string) => invoke<void>("restart_task", { taskId }),
-  startAll: () => invoke<void>("start_all"),
-  stopAllTasks: () => invoke<void>("stop_all_tasks"),
-  startGroup: (groupId: string) => invoke<void>("start_group", { groupId }),
-  stopGroup: (groupId: string) => invoke<void>("stop_group", { groupId }),
+  startTask: async (taskId: string) => {
+    if (!isTauri()) return
+    return invoke<void>("start_task", { taskId })
+  },
+  stopTask: async (taskId: string) => {
+    if (!isTauri()) return
+    return invoke<void>("stop_task", { taskId })
+  },
+  restartTask: async (taskId: string) => {
+    if (!isTauri()) return
+    return invoke<void>("restart_task", { taskId })
+  },
+  startAll: async () => {
+    if (!isTauri()) return
+    return invoke<void>("start_all")
+  },
+  stopAllTasks: async () => {
+    if (!isTauri()) return
+    return invoke<void>("stop_all_tasks")
+  },
+  startGroup: async (groupId: string) => {
+    if (!isTauri()) return
+    return invoke<void>("start_group", { groupId })
+  },
+  stopGroup: async (groupId: string) => {
+    if (!isTauri()) return
+    return invoke<void>("stop_group", { groupId })
+  },
 
   // Status & Info
-  isTaskRunning: (taskId: string) => invoke<boolean>("is_task_running", { taskId }),
-  getTaskPid: (taskId: string) => invoke<number>("get_task_pid", { taskId }),
+  isTaskRunning: async (taskId: string) => {
+    if (!isTauri()) return false
+    return invoke<boolean>("is_task_running", { taskId })
+  },
+  getTaskPid: async (taskId: string) => {
+    if (!isTauri()) return 0
+    return invoke<number>("get_task_pid", { taskId })
+  },
   
   // Health Check
-  getHealthCheckResult: (taskId: string) => invoke<any>("get_health_check_result", { taskId }),
-  restartHealthCheck: (taskId: string) => invoke<void>("restart_health_check", { taskId }),
+  getHealthCheckResult: async (taskId: string) => {
+    if (!isTauri()) return null
+    return invoke<any>("get_health_check_result", { taskId })
+  },
+  restartHealthCheck: async (taskId: string) => {
+    if (!isTauri()) return
+    return invoke<void>("restart_health_check", { taskId })
+  },
 }
