@@ -24,6 +24,7 @@ export default function SettingsPage() {
     setMounted(true)
   }, [])
 
+
   const [config, setConfig] = useState({
     webPort: 8899,
     webEnabled: true,
@@ -70,7 +71,9 @@ export default function SettingsPage() {
                         <Switch
                           id="webEnabled"
                           checked={config.webEnabled}
-                          onCheckedChange={(checked) => setConfig({ ...config, webEnabled: checked })}
+                          onCheckedChange={(checked: boolean) =>
+                            setConfig({ ...config, webEnabled: checked })
+                          }
                         />
                       </div>
 
@@ -118,7 +121,9 @@ export default function SettingsPage() {
                         <Switch
                           id="authEnabled"
                           checked={config.authEnabled}
-                          onCheckedChange={(checked) => setConfig({ ...config, authEnabled: checked })}
+                          onCheckedChange={(checked: boolean) =>
+                            setConfig({ ...config, authEnabled: checked })
+                          }
                         />
                       </div>
 
@@ -301,7 +306,9 @@ export default function SettingsPage() {
                         <Switch
                           id="autoBackup"
                           checked={config.autoBackup}
-                          onCheckedChange={(checked) => setConfig({ ...config, autoBackup: checked })}
+                          onCheckedChange={(checked: boolean) =>
+                            setConfig({ ...config, autoBackup: checked })
+                          }
                         />
                       </div>
 

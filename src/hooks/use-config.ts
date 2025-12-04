@@ -115,20 +115,38 @@ export function useConfig() {
     async (groupData: Omit<ServiceGroup, "id" | "services" | "order" | "dependencies">) => {
       if (!config) return false
 
+      const existingGroups = config.groups ?? []
+      const existingApplications = config.applications ?? []
+
       const newGroup: ServiceGroup = {
         ...groupData,
         id: `group-${Date.now()}`,
         services: [],
-        order: config.groups.length + 1,
+        order: existingGroups.length + 1,
         dependencies: [],
       }
 
-      const newConfig = {
+      const updatedApplications = newGroup.applicationId
+        ? existingApplications.map((app) =>
+            app.id === newGroup.applicationId
+              ? {
+                  ...app,
+                  groupIds: app.groupIds?.includes(newGroup.id)
+                    ? app.groupIds
+                    : [...(app.groupIds ?? []), newGroup.id],
+                  updatedAt: new Date().toISOString(),
+                }
+              : app,
+          )
+        : existingApplications
+
+      const newConfig: Config = {
         ...config,
-        groups: [...config.groups, newGroup],
+        groups: [...existingGroups, newGroup],
+        applications: updatedApplications,
       }
 
-      return await saveConfig(newConfig as unknown as Config)
+      return await saveConfig(newConfig)
     },
     [config, saveConfig],
   )
@@ -137,14 +155,47 @@ export function useConfig() {
     async (group: ServiceGroup) => {
       if (!config) return false
 
-      const newGroups = config.groups.map((g) => (g.id === group.id ? group : g))
+      const existingGroups = config.groups ?? []
+      const existingApplications = config.applications ?? []
 
-      const newConfig = {
+      const previousGroup = existingGroups.find((g) => g.id === group.id)
+      if (!previousGroup) return false
+
+      const newGroups = existingGroups.map((g) => (g.id === group.id ? group : g))
+
+      const updatedApplications = existingApplications.map((app) => {
+        const groupIds = app.groupIds ?? []
+        let nextGroupIds = groupIds
+
+        const belongedBefore = previousGroup.applicationId && app.id === previousGroup.applicationId
+        const belongsNow = group.applicationId && app.id === group.applicationId
+
+        if (belongedBefore && !belongsNow) {
+          nextGroupIds = groupIds.filter((id) => id !== group.id)
+        }
+
+        if (belongsNow) {
+          nextGroupIds = groupIds.includes(group.id) ? groupIds : [...groupIds, group.id]
+        }
+
+        const changed = nextGroupIds !== groupIds
+
+        return changed
+          ? {
+              ...app,
+              groupIds: nextGroupIds,
+              updatedAt: new Date().toISOString(),
+            }
+          : app
+      })
+
+      const newConfig: Config = {
         ...config,
         groups: newGroups,
+        applications: updatedApplications,
       }
 
-      return await saveConfig(newConfig as unknown as Config)
+      return await saveConfig(newConfig)
     },
     [config, saveConfig],
   )
@@ -153,14 +204,30 @@ export function useConfig() {
     async (groupId: string) => {
       if (!config) return false
 
-      const newGroups = config.groups.filter((g) => g.id !== groupId)
+      const existingGroups = config.groups ?? []
+      const existingApplications = config.applications ?? []
 
-      const newConfig = {
+      const newGroups = existingGroups.filter((g) => g.id !== groupId)
+      const updatedApplications = existingApplications.map((app) => {
+        const groupIds = app.groupIds ?? []
+        if (!groupIds.includes(groupId)) {
+          return app
+        }
+
+        return {
+          ...app,
+          groupIds: groupIds.filter((id) => id !== groupId),
+          updatedAt: new Date().toISOString(),
+        }
+      })
+
+      const newConfig: Config = {
         ...config,
         groups: newGroups,
+        applications: updatedApplications,
       }
 
-      return await saveConfig(newConfig as unknown as Config)
+      return await saveConfig(newConfig)
     },
     [config, saveConfig],
   )
