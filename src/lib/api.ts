@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core"
-import type { Config } from "@/types/service"
-import { mockGroups, mockApplications } from "@/lib/mock-data"
+import type { Config, ServerHealth } from "@/types/service"
+import { mockGroups, mockApplications, mockServerHealth } from "@/lib/mock-data"
 
 const isTauri = () => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 
@@ -73,5 +73,14 @@ export const api = {
   restartHealthCheck: async (taskId: string) => {
     if (!isTauri()) return
     return invoke<void>("restart_health_check", { taskId })
+  },
+
+  // Server Health
+  getServerHealth: async () => {
+    if (!isTauri()) {
+      // 在非 Tauri 环境下使用 mock 数据方便开发调试
+      return mockServerHealth as ServerHealth
+    }
+    return invoke<ServerHealth>("get_server_health")
   },
 }

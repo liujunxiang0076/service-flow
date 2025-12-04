@@ -84,6 +84,10 @@ export interface ServerHealth {
   }
   uptime: number // Server uptime in seconds
   lastUpdated: Date
+  os: string
+  kernel: string
+  cpuModel: string
+  totalMemory: string
 }
 
 export interface LogConfig {

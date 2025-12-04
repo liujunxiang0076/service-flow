@@ -146,6 +146,10 @@ export const mockServerHealth: ServerHealth = {
   },
   uptime: 345600, // 4 days
   lastUpdated: new Date(),
+  os: "Linux Ubuntu 22.04 LTS",
+  kernel: "5.15.0-91-generic",
+  cpuModel: "Intel Xeon E5-2680 v4 (8 cores)",
+  totalMemory: "16 GB DDR4",
 }
 
 export const defaultLogConfig: LogConfig = {

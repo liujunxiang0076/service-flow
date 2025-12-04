@@ -33,7 +33,8 @@ fn main() {
             app::start_group,
             app::stop_group,
             app::restart_health_check,
-            app::stop_all_tasks
+            app::stop_all_tasks,
+            app::get_server_health
         ])
         .setup(|app| {
             // 初始化应用

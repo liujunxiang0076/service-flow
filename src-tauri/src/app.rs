@@ -1,6 +1,11 @@
 use tauri::{State, AppHandle, Emitter, Manager};
 use std::sync::{Arc, Mutex};
+use std::time::Instant;
 use log::info;
+use chrono::Utc;
+use serde::Serialize;
+use sysinfo::{System, SystemExt, CpuExt, DiskExt, NetworksExt, NetworkExt};
+use lazy_static::lazy_static;
 
 use crate::config::{self, Config};
 use crate::database;
@@ -16,6 +21,42 @@ pub struct App {
     orchestrator: Arc<Orchestrator>,
     health_checker: Arc<HealthChecker>,
     web_server: Arc<WebServer>,
+}
+
+#[derive(Serialize)]
+pub struct NetworkUsage {
+    #[serde(rename = "in")]
+    pub in_kb_s: f64,
+    pub out: f64,
+}
+
+#[derive(Serialize)]
+pub struct ServerHealthResponse {
+    pub cpu: f64,
+    pub memory: f64,
+    pub disk: f64,
+    pub network: NetworkUsage,
+    pub uptime: u64,
+    #[serde(rename = "lastUpdated")]
+    pub last_updated: String,
+    #[serde(rename = "os")]
+    pub os_name: String,
+    #[serde(rename = "kernel")]
+    pub kernel_version: String,
+    #[serde(rename = "cpuModel")]
+    pub cpu_model: String,
+    #[serde(rename = "totalMemory")]
+    pub total_memory_human: String,
+}
+
+struct PrevNetworkSample {
+    in_bytes: u64,
+    out_bytes: u64,
+    timestamp: Instant,
+}
+
+lazy_static! {
+    static ref PREV_NETWORK: Mutex<Option<PrevNetworkSample>> = Mutex::new(None);
 }
 
 impl App {
@@ -124,6 +165,104 @@ pub fn save_config(app: State<App>, cfg: Config) -> Result<(), String> {
     } else {
         Ok(())
     }
+}
+
+#[tauri::command]
+pub fn get_server_health() -> Result<ServerHealthResponse, String> {
+    let mut system = System::new_all();
+    system.refresh_all();
+
+    // CPU usage percentage
+    let cpu = system.global_cpu_info().cpu_usage() as f64;
+
+    // Memory usage percentage
+    let total_memory = system.total_memory() as f64;
+    let used_memory = system.used_memory() as f64;
+    let memory = if total_memory > 0.0 {
+        (used_memory / total_memory) * 100.0
+    } else {
+        0.0
+    };
+
+    // Disk usage percentage (use first disk as representative)
+    let mut disk_percent = 0.0;
+    if let Some(disk) = system.disks().first() {
+        let total_space = disk.total_space() as f64;
+        let available_space = disk.available_space() as f64;
+        if total_space > 0.0 {
+            let used_space = total_space - available_space;
+            disk_percent = (used_space / total_space) * 100.0;
+        }
+    }
+
+    // Uptime in seconds
+    let uptime = system.uptime();
+
+    // Network throughput: compute based on delta of cumulative bytes
+    let networks = system.networks();
+    let mut total_in = 0u64;
+    let mut total_out = 0u64;
+    for (_name, data) in networks.iter() {
+        total_in += data.received();
+        total_out += data.transmitted();
+    }
+
+    let now = Instant::now();
+    let mut prev = PREV_NETWORK.lock().map_err(|e| e.to_string())?;
+    let (in_kb_s, out_kb_s) = if let Some(prev_sample) = &*prev {
+        let elapsed = now.duration_since(prev_sample.timestamp).as_secs_f64();
+        if elapsed > 0.0 {
+            let in_delta = total_in.saturating_sub(prev_sample.in_bytes) as f64;
+            let out_delta = total_out.saturating_sub(prev_sample.out_bytes) as f64;
+            ((in_delta / 1024.0) / elapsed, (out_delta / 1024.0) / elapsed)
+        } else {
+            (0.0, 0.0)
+        }
+    } else {
+        (0.0, 0.0)
+    };
+
+    *prev = Some(PrevNetworkSample {
+        in_bytes: total_in,
+        out_bytes: total_out,
+        timestamp: now,
+    });
+
+    let network = NetworkUsage {
+        in_kb_s,
+        out: out_kb_s,
+    };
+
+    // System info
+    let os_name = system
+        .name()
+        .unwrap_or_else(|| "Unknown OS".to_string());
+    let kernel_version = system
+        .kernel_version()
+        .unwrap_or_else(|| "Unknown".to_string());
+    let cpu_model = system
+        .cpus()
+        .first()
+        .map(|c| c.brand().to_string())
+        .unwrap_or_else(|| "Unknown CPU".to_string());
+    // sysinfo 的 total_memory 在不同平台单位略有差异，这里按 MB 处理，只除以 1024 得到 GB
+    let total_mem_gb = (total_memory / 1024.0).max(0.0);
+    let total_memory_human = format!("{:.0} GB", total_mem_gb.round());
+
+    let last_updated = Utc::now().to_rfc3339();
+
+    Ok(ServerHealthResponse {
+        cpu,
+        memory,
+        disk: disk_percent,
+        network,
+        uptime,
+        last_updated,
+        os_name,
+        kernel_version,
+        cpu_model,
+        total_memory_human,
+    })
 }
 
 #[tauri::command]

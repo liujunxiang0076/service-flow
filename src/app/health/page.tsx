@@ -5,17 +5,46 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Plus, Activity, CheckCircle2, XCircle, Clock, Cpu, HardDrive, Network, Server } from "lucide-react"
-import { mockGroups, mockServerHealth } from "@/lib/mock-data"
 import { CreateHealthCheckDialog } from "@/components/create-health-check-dialog"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useConfig } from "@/hooks/use-config"
+import { useEffect, useMemo, useState } from "react"
+import { api } from "@/lib/api"
+import type { ServerHealth } from "@/types/service"
 
 export default function HealthPage() {
-  const allServices = mockGroups.flatMap((group) => group.services)
+  const { config, loading } = useConfig()
+  const groups = config?.groups ?? []
+
+  const allServices = useMemo(() => groups.flatMap((group) => group.services), [groups])
 
   const healthyCount = allServices.filter((s) => s.healthStatus === "healthy").length
   const unhealthyCount = allServices.filter((s) => s.healthStatus === "unhealthy").length
   const unconfiguredCount = allServices.filter((s) => s.healthStatus === "unconfigured").length
+
+  const [serverHealth, setServerHealth] = useState<ServerHealth | null>(null)
+
+  useEffect(() => {
+    let timer: number | undefined
+
+    const fetchHealth = async () => {
+      try {
+        const data = await api.getServerHealth()
+        setServerHealth(data)
+      } catch (e) {
+        console.error("Failed to fetch server health", e)
+      }
+    }
+
+    fetchHealth()
+    // 定期刷新服务器健康数据
+    timer = window.setInterval(fetchHealth, 5000)
+
+    return () => {
+      if (timer) window.clearInterval(timer)
+    }
+  }, [])
 
   const formatUptime = (seconds: number) => {
     const days = Math.floor(seconds / 86400)
@@ -64,7 +93,10 @@ export default function HealthPage() {
                       <CheckCircle2 className="h-6 w-6 text-success" />
                     </div>
                   </div>
-                  <Progress value={(healthyCount / allServices.length) * 100} className="mt-4" />
+                  <Progress
+                    value={allServices.length ? (healthyCount / allServices.length) * 100 : 0}
+                    className="mt-4"
+                  />
                 </Card>
 
                 <Card className="p-6">
@@ -77,7 +109,10 @@ export default function HealthPage() {
                       <XCircle className="h-6 w-6 text-destructive" />
                     </div>
                   </div>
-                  <Progress value={(unhealthyCount / allServices.length) * 100} className="mt-4" />
+                  <Progress
+                    value={allServices.length ? (unhealthyCount / allServices.length) * 100 : 0}
+                    className="mt-4"
+                  />
                 </Card>
 
                 <Card className="p-6">
@@ -90,7 +125,10 @@ export default function HealthPage() {
                       <Clock className="h-6 w-6 text-muted-foreground" />
                     </div>
                   </div>
-                  <Progress value={(unconfiguredCount / allServices.length) * 100} className="mt-4" />
+                  <Progress
+                    value={allServices.length ? (unconfiguredCount / allServices.length) * 100 : 0}
+                    className="mt-4"
+                  />
                 </Card>
               </div>
 
@@ -98,7 +136,7 @@ export default function HealthPage() {
               <div className="space-y-4">
                 <h2 className="text-xl font-semibold text-foreground">服务健康状态</h2>
 
-                {mockGroups.map((group) => (
+                {groups.map((group) => (
                   <Card key={group.id} className="overflow-hidden">
                     <div className="border-b border-border bg-card/50 p-4">
                       <h3 className="font-semibold text-foreground">{group.name}</h3>
@@ -160,7 +198,9 @@ export default function HealthPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">运行时长</p>
-                    <p className="text-lg font-semibold text-foreground">{formatUptime(mockServerHealth.uptime)}</p>
+                    <p className="text-lg font-semibold text-foreground">
+                      {serverHealth ? formatUptime(serverHealth.uptime) : "加载中..."}
+                    </p>
                   </div>
                 </div>
 
@@ -174,13 +214,21 @@ export default function HealthPage() {
                         </div>
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">CPU 使用率</p>
-                          <p className="text-2xl font-bold text-foreground">{mockServerHealth.cpu.toFixed(1)}%</p>
+                          <p className="text-2xl font-bold text-foreground">
+                            {serverHealth ? `${serverHealth.cpu.toFixed(1)}%` : "-"}
+                          </p>
                         </div>
                       </div>
                     </div>
-                    <Progress value={mockServerHealth.cpu} className="h-3" />
+                    <Progress value={serverHealth?.cpu ?? 0} className="h-3" />
                     <p className="mt-2 text-xs text-muted-foreground">
-                      {mockServerHealth.cpu < 60 ? "运行正常" : mockServerHealth.cpu < 80 ? "负载较高" : "负载过高"}
+                      {!serverHealth
+                        ? "正在获取服务器 CPU 状态..."
+                        : serverHealth.cpu < 60
+                          ? "运行正常"
+                          : serverHealth.cpu < 80
+                            ? "负载较高"
+                            : "负载过高"}
                     </p>
                   </Card>
 
@@ -193,17 +241,21 @@ export default function HealthPage() {
                         </div>
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">内存使用率</p>
-                          <p className="text-2xl font-bold text-foreground">{mockServerHealth.memory.toFixed(1)}%</p>
+                          <p className="text-2xl font-bold text-foreground">
+                            {serverHealth ? `${serverHealth.memory.toFixed(1)}%` : "-"}
+                          </p>
                         </div>
                       </div>
                     </div>
-                    <Progress value={mockServerHealth.memory} className="h-3" />
+                    <Progress value={serverHealth?.memory ?? 0} className="h-3" />
                     <p className="mt-2 text-xs text-muted-foreground">
-                      {mockServerHealth.memory < 70
-                        ? "运行正常"
-                        : mockServerHealth.memory < 85
-                          ? "内存紧张"
-                          : "内存不足"}
+                      {!serverHealth
+                        ? "正在获取服务器内存状态..."
+                        : serverHealth.memory < 70
+                          ? "运行正常"
+                          : serverHealth.memory < 85
+                            ? "内存紧张"
+                            : "内存不足"}
                     </p>
                   </Card>
 
@@ -216,13 +268,21 @@ export default function HealthPage() {
                         </div>
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">磁盘使用率</p>
-                          <p className="text-2xl font-bold text-foreground">{mockServerHealth.disk.toFixed(1)}%</p>
+                          <p className="text-2xl font-bold text-foreground">
+                            {serverHealth ? `${serverHealth.disk.toFixed(1)}%` : "-"}
+                          </p>
                         </div>
                       </div>
                     </div>
-                    <Progress value={mockServerHealth.disk} className="h-3" />
+                    <Progress value={serverHealth?.disk ?? 0} className="h-3" />
                     <p className="mt-2 text-xs text-muted-foreground">
-                      {mockServerHealth.disk < 75 ? "空间充足" : mockServerHealth.disk < 90 ? "空间紧张" : "空间不足"}
+                      {!serverHealth
+                        ? "正在获取磁盘使用情况..."
+                        : serverHealth.disk < 75
+                          ? "空间充足"
+                          : serverHealth.disk < 90
+                            ? "空间紧张"
+                            : "空间不足"}
                     </p>
                   </Card>
 
@@ -236,10 +296,10 @@ export default function HealthPage() {
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">网络流量</p>
                           <p className="text-sm font-medium text-foreground">
-                            ↓ {mockServerHealth.network.in.toFixed(1)} KB/s
+                            ↓ {serverHealth ? serverHealth.network.in.toFixed(1) : "-"} KB/s
                           </p>
                           <p className="text-sm font-medium text-foreground">
-                            ↑ {mockServerHealth.network.out.toFixed(1)} KB/s
+                            ↑ {serverHealth ? serverHealth.network.out.toFixed(1) : "-"} KB/s
                           </p>
                         </div>
                       </div>
@@ -254,19 +314,27 @@ export default function HealthPage() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="rounded-lg bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">操作系统</p>
-                    <p className="mt-1 font-medium text-foreground">Linux Ubuntu 22.04 LTS</p>
+                    <p className="mt-1 font-medium text-foreground">
+                      {serverHealth ? serverHealth.os : "-"}
+                    </p>
                   </div>
                   <div className="rounded-lg bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">内核版本</p>
-                    <p className="mt-1 font-medium text-foreground">5.15.0-91-generic</p>
+                    <p className="mt-1 font-medium text-foreground">
+                      {serverHealth ? serverHealth.kernel : "-"}
+                    </p>
                   </div>
                   <div className="rounded-lg bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">处理器</p>
-                    <p className="mt-1 font-medium text-foreground">Intel Xeon E5-2680 v4 (8 cores)</p>
+                    <p className="mt-1 font-medium text-foreground">
+                      {serverHealth ? serverHealth.cpuModel : "-"}
+                    </p>
                   </div>
                   <div className="rounded-lg bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">总内存</p>
-                    <p className="mt-1 font-medium text-foreground">16 GB DDR4</p>
+                    <p className="mt-1 font-medium text-foreground">
+                      {serverHealth ? serverHealth.totalMemory : "-"}
+                    </p>
                   </div>
                 </div>
               </Card>

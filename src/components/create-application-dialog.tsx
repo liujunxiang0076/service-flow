@@ -110,6 +110,7 @@ export function ApplicationDialog({
                 placeholder="例如：电商平台"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                autoComplete="off"
                 required
               />
             </div>
@@ -121,6 +122,7 @@ export function ApplicationDialog({
                 placeholder="应用的描述信息"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                autoComplete="off"
                 rows={2}
               />
             </div>
