@@ -72,7 +72,8 @@ export default function LogsPage() {
         <AppSidebar />
 
         <main className="flex flex-1 flex-col overflow-hidden">
-          <div className="container mx-auto p-8 pb-4">
+          <div className="container mx-auto flex h-full flex-col p-8">
+            <div className="shrink-0 space-y-4">
             <PageHeader
               title="日志管理"
               description="实时查看和搜索服务日志"
@@ -266,10 +267,10 @@ export default function LogsPage() {
                 </Tooltip>
               </TooltipProvider>
             </div>
-          </div>
+            </div>
 
-          {/* Logs Container */}
-          <div className="flex-1 overflow-hidden px-8 pb-8">
+            {/* Logs Container */}
+            <div className="flex-1 overflow-hidden px-8 pb-8">
             <Card className="flex h-full flex-col overflow-hidden">
               <div ref={logContainerRef} className="flex-1 overflow-y-auto p-4 font-mono text-sm">
                 {filteredLogs.map((log, index) => (
@@ -305,6 +306,7 @@ export default function LogsPage() {
                 </span>
               </div>
             </Card>
+            </div>
           </div>
         </main>
       </div>
