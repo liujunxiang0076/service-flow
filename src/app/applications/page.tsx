@@ -118,6 +118,23 @@ export default function ApplicationsPage() {
           )}
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {applications.length === 0 && !loading && (
+              <Card className="md:col-span-2 lg:col-span-3 flex min-h-[260px] flex-col items-center justify-center gap-3 border-dashed border-border bg-muted/40">
+                <p className="text-base font-medium text-foreground">还没有创建任何应用</p>
+                <p className="text-xs text-muted-foreground">应用可以帮助你按产品或系统维度组织服务分组，方便统一管理和查看状态</p>
+                <ApplicationDialog
+                  groups={groups}
+                  onSubmit={createApplication}
+                  trigger={
+                    <Button size="sm">
+                      <Plus className="mr-2 h-4 w-4" />
+                      新建第一个应用
+                    </Button>
+                  }
+                />
+              </Card>
+            )}
+
             {applications.map((app) => {
               const Icon = app.icon ? iconMap[app.icon] : null
               const appGroups = groups.filter((g) => app.groupIds.includes(g.id))
