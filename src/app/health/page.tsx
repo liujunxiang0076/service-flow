@@ -14,7 +14,7 @@ import { api } from "@/lib/api"
 import type { ServerHealth } from "@/types/service"
 
 export default function HealthPage() {
-  const { config, loading } = useConfig()
+  const { config } = useConfig()
   const groups = config?.groups ?? []
 
   const allServices = useMemo(() => groups.flatMap((group) => group.services), [groups])
