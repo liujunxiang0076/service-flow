@@ -66,6 +66,12 @@ pub struct Application {
 pub struct Settings {
     pub server_port: u16,
     pub auto_start: bool,
+    #[serde(default = "default_theme")]
+    pub theme: String,
+}
+
+fn default_theme() -> String {
+    "system".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -83,6 +89,7 @@ impl Default for Config {
             settings: Settings {
                 server_port: 8899,
                 auto_start: false,
+                theme: "system".to_string(),
             },
             groups: Vec::new(),
             applications: Vec::new(),

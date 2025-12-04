@@ -97,6 +97,7 @@ export interface LogConfig {
 export interface Settings {
   serverPort: number
   autoStart: boolean
+  theme: string
 }
 
 export interface Config {

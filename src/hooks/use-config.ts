@@ -165,6 +165,106 @@ export function useConfig() {
     [config, saveConfig],
   )
 
+  const createService = useCallback(
+    async (serviceData: any) => {
+      if (!config) return false
+
+      const groupId = serviceData.groupId
+      const newService = {
+        ...serviceData,
+        id: `service-${Date.now()}`,
+        status: "stopped",
+        healthStatus: "unconfigured",
+      }
+
+      const newGroups = config.groups.map((group) => {
+        if (group.id === groupId) {
+          return {
+            ...group,
+            services: [...group.services, newService],
+          }
+        }
+        return group
+      })
+
+      const newConfig = {
+        ...config,
+        groups: newGroups,
+      }
+
+      return await saveConfig(newConfig as unknown as Config)
+    },
+    [config, saveConfig],
+  )
+
+  const updateService = useCallback(
+    async (serviceData: any) => {
+      if (!config) return false
+
+      const groupId = serviceData.groupId
+      // Find old group to check if group changed
+      const oldGroup = config.groups.find(g => g.services.some(s => s.id === serviceData.id))
+      
+      let newGroups = [...config.groups]
+
+      if (oldGroup && oldGroup.id !== groupId) {
+        // Service moved to another group
+        // 1. Remove from old group
+        newGroups = newGroups.map(g => {
+          if (g.id === oldGroup.id) {
+            return { ...g, services: g.services.filter(s => s.id !== serviceData.id) }
+          }
+          return g
+        })
+        // 2. Add to new group
+        newGroups = newGroups.map(g => {
+          if (g.id === groupId) {
+            return { ...g, services: [...g.services, serviceData] }
+          }
+          return g
+        })
+      } else {
+        // Service stays in same group, just update
+        newGroups = newGroups.map(g => {
+          if (g.id === groupId) {
+            return {
+              ...g,
+              services: g.services.map(s => s.id === serviceData.id ? serviceData : s)
+            }
+          }
+          return g
+        })
+      }
+
+      const newConfig = {
+        ...config,
+        groups: newGroups,
+      }
+
+      return await saveConfig(newConfig as unknown as Config)
+    },
+    [config, saveConfig],
+  )
+
+  const deleteService = useCallback(
+    async (serviceId: string) => {
+      if (!config) return false
+
+      const newGroups = config.groups.map(group => ({
+        ...group,
+        services: group.services.filter(s => s.id !== serviceId)
+      }))
+
+      const newConfig = {
+        ...config,
+        groups: newGroups,
+      }
+
+      return await saveConfig(newConfig as unknown as Config)
+    },
+    [config, saveConfig],
+  )
+
   useEffect(() => {
     fetchConfig()
   }, [fetchConfig])
@@ -181,5 +281,8 @@ export function useConfig() {
     createGroup,
     updateGroup,
     deleteGroup,
+    createService,
+    updateService,
+    deleteService,
   }
 }

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -18,16 +18,20 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { mockGroups } from "@/lib/mock-data"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FolderOpen, FileCode, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import type { ServiceType } from "@/types/service"
+import type { ServiceType, ServiceGroup, Service } from "@/types/service"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-interface CreateServiceDialogProps {
+interface ServiceDialogProps {
   trigger?: React.ReactNode
   onSubmit?: (data: any) => void
+  groups: ServiceGroup[]
+  mode?: "create" | "edit"
+  initialData?: Service
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 const serviceTemplates: Record<
@@ -112,13 +116,25 @@ const serviceTemplates: Record<
   },
 }
 
-export function CreateServiceDialog({ trigger, onSubmit }: CreateServiceDialogProps) {
-  const [open, setOpen] = useState(false)
+export function ServiceDialog({ 
+  trigger, 
+  onSubmit, 
+  groups, 
+  mode = "create",
+  initialData,
+  open: controlledOpen,
+  onOpenChange: setControlledOpen
+}: ServiceDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = controlledOpen !== undefined
+  const open = isControlled ? controlledOpen : internalOpen
+  const setOpen = isControlled ? setControlledOpen! : setInternalOpen
+
   const [serviceType, setServiceType] = useState<ServiceType>("custom")
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    groupId: mockGroups[0]?.id || "",
+    groupId: "",
     path: "",
     args: "",
     workDir: "",
@@ -126,6 +142,36 @@ export function CreateServiceDialog({ trigger, onSubmit }: CreateServiceDialogPr
     startupDelay: 0,
     port: "",
   })
+
+  useEffect(() => {
+    if (open && initialData && mode === "edit") {
+      setServiceType(initialData.type || "custom")
+      setFormData({
+        name: initialData.name,
+        description: initialData.description || "",
+        groupId: initialData.groupId,
+        path: initialData.path,
+        args: initialData.args?.join(" ") || "",
+        workDir: initialData.workDir || "",
+        autoStart: initialData.autoStart,
+        startupDelay: initialData.startupDelay,
+        port: "", // Need to extract port from args or config if possible
+      })
+    } else if (open && mode === "create") {
+      setServiceType("custom")
+      setFormData({
+        name: "",
+        description: "",
+        groupId: groups.length > 0 ? groups[0].id : "",
+        path: "",
+        args: "",
+        workDir: "",
+        autoStart: false,
+        startupDelay: 0,
+        port: "",
+      })
+    }
+  }, [open, initialData, mode, groups])
 
   const handleServiceTypeChange = (type: ServiceType) => {
     setServiceType(type)
@@ -142,14 +188,12 @@ export function CreateServiceDialog({ trigger, onSubmit }: CreateServiceDialogPr
   }
 
   const handleSelectFile = () => {
-    // In a real implementation, this would use Electron's dialog.showOpenDialog or similar
     const input = document.createElement("input")
     input.type = "file"
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0]
       if (file) {
-        // Simulate file path (in real app, would get actual path)
-        setFormData({ ...formData, path: `Selected: ${file.name}` })
+        setFormData({ ...formData, path: `Selected: ${file.name}` }) // Simplified
       }
     }
     input.click()
@@ -164,7 +208,7 @@ export function CreateServiceDialog({ trigger, onSubmit }: CreateServiceDialogPr
       const files = (e.target as HTMLInputElement).files
       if (files && files.length > 0) {
         const path = files[0].webkitRelativePath.split("/")[0]
-        setFormData({ ...formData, workDir: `Selected: ${path}` })
+        setFormData({ ...formData, workDir: `Selected: ${path}` }) // Simplified
       }
     }
     input.click()
@@ -172,31 +216,24 @@ export function CreateServiceDialog({ trigger, onSubmit }: CreateServiceDialogPr
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit?.({ ...formData, type: serviceType })
+    const submitData = {
+      ...formData,
+      type: serviceType,
+      args: formData.args ? formData.args.split(" ") : [],
+    }
+    onSubmit?.(mode === "edit" ? { ...initialData, ...submitData } : submitData)
     setOpen(false)
-    setServiceType("custom")
-    setFormData({
-      name: "",
-      description: "",
-      groupId: mockGroups[0]?.id || "",
-      path: "",
-      args: "",
-      workDir: "",
-      autoStart: false,
-      startupDelay: 0,
-      port: "",
-    })
   }
 
   const currentTemplate = serviceTemplates[serviceType]
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger || <Button>创建服务</Button>}</DialogTrigger>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>创建服务</DialogTitle>
+            <DialogTitle>{mode === "create" ? "创建服务" : "编辑服务"}</DialogTitle>
             <DialogDescription>选择服务类型并配置服务参数</DialogDescription>
           </DialogHeader>
 
@@ -267,7 +304,7 @@ export function CreateServiceDialog({ trigger, onSubmit }: CreateServiceDialogPr
                     <SelectValue placeholder="选择分组" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockGroups.map((group) => (
+                    {groups.map((group) => (
                       <SelectItem key={group.id} value={group.id}>
                         {group.name}
                       </SelectItem>
@@ -416,7 +453,7 @@ export function CreateServiceDialog({ trigger, onSubmit }: CreateServiceDialogPr
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               取消
             </Button>
-            <Button type="submit">创建服务</Button>
+            <Button type="submit">{mode === "create" ? "创建服务" : "保存修改"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

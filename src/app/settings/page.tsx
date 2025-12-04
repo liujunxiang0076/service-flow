@@ -1,3 +1,4 @@
+"use client"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { PageHeader } from "@/components/page-header"
@@ -7,29 +8,21 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Download, Upload, Save } from "lucide-react"
+import { Download, Upload, Save, Moon, Sun, Laptop } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect } from "react"
 import { ExportConfigDialog } from "@/components/export-config-dialog"
+import { useTheme } from "next-themes"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function SettingsPage() {
-  const [isDark, setIsDark] = useState(true)
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setIsDark(document.documentElement.classList.contains("dark"))
+    setMounted(true)
   }, [])
-
-  const toggleTheme = (checked: boolean) => {
-    const html = document.documentElement
-    if (checked) {
-      html.classList.add("dark")
-      setIsDark(true)
-    } else {
-      html.classList.remove("dark")
-      setIsDark(false)
-    }
-  }
 
   const [config, setConfig] = useState({
     webPort: 8899,
@@ -199,14 +192,38 @@ export default function SettingsPage() {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
-                          <Label htmlFor="theme">深色模式</Label>
+                          <Label htmlFor="theme-select">主题设置</Label>
                           <p className="text-sm text-muted-foreground">切换系统外观主题</p>
                         </div>
-                        <Switch
-                          id="theme"
-                          checked={isDark}
-                          onCheckedChange={toggleTheme}
-                        />
+                        {mounted ? (
+                          <Select value={theme ?? "system"} onValueChange={setTheme}>
+                            <SelectTrigger id="theme-select" className="w-[200px]">
+                              <SelectValue placeholder="选择主题" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="light">
+                                <div className="flex items-center gap-2">
+                                  <Sun className="h-4 w-4" />
+                                  <span>浅色模式</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="dark">
+                                <div className="flex items-center gap-2">
+                                  <Moon className="h-4 w-4" />
+                                  <span>深色模式</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="system">
+                                <div className="flex items-center gap-2">
+                                  <Laptop className="h-4 w-4" />
+                                  <span>跟随系统</span>
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="h-10 w-[200px] animate-pulse rounded-md bg-muted" />
+                        )}
                       </div>
 
                       <div className="grid gap-2">
