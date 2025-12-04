@@ -17,6 +17,7 @@ export default function GroupsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedApp, setSelectedApp] = useState<string>("all")
   const [editingGroup, setEditingGroup] = useState<ServiceGroup | null>(null)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
 
   const groups = config?.groups || []
   const applications = config?.applications || []
@@ -53,23 +54,25 @@ export default function GroupsPage() {
             title="分组管理"
             description="管理服务分组和批量操作"
             actions={
-              <GroupDialog
-                applications={applications}
-                onSubmit={createGroup}
-                trigger={
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button>
-                          <Plus className="mr-2 h-4 w-4" />
-                          新建分组
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>创建新的服务分组</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                }
-              />
+              <>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={() => setIsCreateDialogOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        新建分组
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>创建新的服务分组</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <GroupDialog
+                  open={isCreateDialogOpen}
+                  onOpenChange={setIsCreateDialogOpen}
+                  applications={applications}
+                  onSubmit={createGroup}
+                />
+              </>
             }
           />
 
