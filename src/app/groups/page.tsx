@@ -79,8 +79,8 @@ export default function GroupsPage() {
               mode="edit"
               initialData={editingGroup}
               open={!!editingGroup}
-              onOpenChange={(open) => !open && setEditingGroup(null)}
-              onSubmit={async (data) => {
+              onOpenChange={(open: any) => !open && setEditingGroup(null)}
+              onSubmit={async (data: ServiceGroup) => {
                 await updateGroup(data)
                 setEditingGroup(null)
               }}

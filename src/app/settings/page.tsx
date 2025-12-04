@@ -8,16 +8,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Download, Upload, Save, Moon, Sun, Laptop } from "lucide-react"
+import { Download, Upload, Save } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect } from "react"
 import { ExportConfigDialog } from "@/components/export-config-dialog"
 import { useTheme } from "next-themes"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function SettingsPage() {
-  const { theme, setTheme } = useTheme()
+  const { setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -197,37 +196,17 @@ export default function SettingsPage() {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
-                          <Label htmlFor="theme-select">主题设置</Label>
-                          <p className="text-sm text-muted-foreground">切换系统外观主题</p>
+                          <Label htmlFor="theme-mode">深色模式</Label>
+                          <p className="text-sm text-muted-foreground">开启深色外观模式</p>
                         </div>
                         {mounted ? (
-                          <Select value={theme ?? "system"} onValueChange={setTheme}>
-                            <SelectTrigger id="theme-select" className="w-[200px]">
-                              <SelectValue placeholder="选择主题" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="light">
-                                <div className="flex items-center gap-2">
-                                  <Sun className="h-4 w-4" />
-                                  <span>浅色模式</span>
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="dark">
-                                <div className="flex items-center gap-2">
-                                  <Moon className="h-4 w-4" />
-                                  <span>深色模式</span>
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="system">
-                                <div className="flex items-center gap-2">
-                                  <Laptop className="h-4 w-4" />
-                                  <span>跟随系统</span>
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <Switch
+                            id="theme-mode"
+                            checked={resolvedTheme === "dark"}
+                            onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                          />
                         ) : (
-                          <div className="h-10 w-[200px] animate-pulse rounded-md bg-muted" />
+                          <div className="h-6 w-11 animate-pulse rounded-full bg-muted" />
                         )}
                       </div>
 
