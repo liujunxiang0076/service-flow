@@ -3,16 +3,31 @@ import { api } from "@/lib/api"
 import type { Config, Application, ServiceGroup } from "@/types/service"
 import { toast } from "@/hooks/use-toast"
 
+// Simple in-memory cache so all useConfig callers share the same config
+// during the SPA lifetime (until full page reload). This prevents data
+// like newly created services/groups from disappearing when navigating
+// between pages.
+let cachedConfig: Config | null = null
+
 export function useConfig() {
-  const [config, setConfig] = useState<Config | null>(null)
+  const [config, setConfig] = useState<Config | null>(cachedConfig)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fetchConfig = useCallback(async () => {
+    // If we already have a cached config, reuse it to keep state
+    // consistent across pages without hitting the API again.
+    if (cachedConfig) {
+      setConfig(cachedConfig)
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
       const data = await api.getConfig()
       if (data) {
+        cachedConfig = data
         setConfig(data)
       }
     } catch (err) {
@@ -32,6 +47,7 @@ export function useConfig() {
     async (newConfig: Config) => {
       try {
         await api.saveConfig(newConfig)
+        cachedConfig = newConfig
         setConfig(newConfig)
         toast({
           title: "配置已保存",
