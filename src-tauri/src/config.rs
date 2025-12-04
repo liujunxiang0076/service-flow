@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use thiserror::Error;
@@ -28,11 +29,14 @@ pub struct HealthCheck {
 pub struct Task {
     pub id: String,
     pub name: String,
-    pub r#type: String,
+    pub description: Option<String>,
+    pub r#type: Option<String>,
     pub path: String,
-    pub work_dir: String,
-    pub args: String,
+    pub work_dir: Option<String>,
+    pub args: Option<Vec<String>>,
+    pub env: Option<HashMap<String, String>>,
     pub auto_start: bool,
+    #[serde(default)]
     pub dependencies: Vec<String>,
     pub health_check: Option<HealthCheck>,
 }
@@ -42,11 +46,17 @@ pub struct Task {
 pub struct Group {
     pub id: String,
     pub name: String,
-    pub delay: u64,
+    pub description: Option<String>,
+    #[serde(alias = "delay")]
+    pub startup_delay: u64,
     #[serde(default)]
     pub application_id: Option<String>,
     #[serde(rename = "services")]
     pub tasks: Vec<Task>,
+    #[serde(default)]
+    pub order: i32,
+    #[serde(default)]
+    pub dependencies: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

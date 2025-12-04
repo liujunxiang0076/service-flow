@@ -42,15 +42,22 @@ impl ProcessManager {
         }
     }
     
-    pub fn start(&self, task_id: &str, path: &str, work_dir: &str, args: &str) -> Result<(), ProcessError> {
+    pub fn start(&self, task_id: &str, path: &str, work_dir: Option<&str>, args: Option<&Vec<String>>, env: Option<&HashMap<String, String>>) -> Result<(), ProcessError> {
         let mut cmd = Command::new(path);
         
         // 设置工作目录
-        cmd.current_dir(work_dir);
+        if let Some(wd) = work_dir {
+            cmd.current_dir(wd);
+        }
         
         // 解析并添加参数
-        if !args.is_empty() {
-            cmd.args(args.split_whitespace());
+        if let Some(a) = args {
+            cmd.args(a);
+        }
+
+        // 设置环境变量
+        if let Some(e) = env {
+            cmd.envs(e);
         }
         
         // 捕获标准输出和错误
@@ -148,14 +155,14 @@ impl ProcessManager {
         processes.get(task_id).map(|child| child.id())
     }
     
-    pub fn restart(&self, task_id: &str, path: &str, work_dir: &str, args: &str) -> Result<(), ProcessError> {
+    pub fn restart(&self, task_id: &str, path: &str, work_dir: Option<&str>, args: Option<&Vec<String>>, env: Option<&HashMap<String, String>>) -> Result<(), ProcessError> {
         // 先停止进程
         if self.is_running(task_id) {
             self.stop(task_id)?;
         }
         
         // 再启动进程
-        self.start(task_id, path, work_dir, args)
+        self.start(task_id, path, work_dir, args, env)
     }
     
     #[allow(dead_code)]

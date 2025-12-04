@@ -73,8 +73,9 @@ impl Orchestrator {
         self.pm.start(
             task_id,
             &task.path,
-            &task.work_dir,
-            &task.args
+            task.work_dir.as_deref(),
+            task.args.as_ref(),
+            task.env.as_ref()
         )?;
         
         Ok(())
@@ -97,8 +98,9 @@ impl Orchestrator {
         self.pm.restart(
             task_id,
             &task.path,
-            &task.work_dir,
-            &task.args
+            task.work_dir.as_deref(),
+            task.args.as_ref(),
+            task.env.as_ref()
         )?;
         
         Ok(())
