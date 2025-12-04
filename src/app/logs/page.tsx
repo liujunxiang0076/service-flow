@@ -22,14 +22,19 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 const mockLogs = [
-  { time: "2024-01-15 14:32:01", level: "INFO" as const, service: "Redis", message: "Server started on port 6379" },
-  { time: "2024-01-15 14:32:05", level: "INFO" as const, service: "MySQL", message: "Database connection established" },
-  { time: "2024-01-15 14:32:10", level: "INFO" as const, service: "后端 API", message: "Express server listening on port 3000" },
-  { time: "2024-01-15 14:32:15", level: "WARN" as const, service: "后端 API", message: "Connection pool reaching 80% capacity" },
-  { time: "2024-01-15 14:32:20", level: "ERROR" as const, service: "Prometheus", message: "Failed to scrape metrics from target" },
-  { time: "2024-01-15 14:32:25", level: "INFO" as const, service: "Redis", message: "Background saving started" },
-  { time: "2024-01-15 14:32:30", level: "INFO" as const, service: "后端 API", message: "GET /api/users 200 45ms" },
-  { time: "2024-01-15 14:32:35", level: "DEBUG" as const, service: "后端 API", message: "Query executed: SELECT * FROM users" },
+  { time: "2024-01-15 14:32:01", level: "INFO", service: "Redis", message: "Server started on port 6379" },
+  { time: "2024-01-15 14:32:05", level: "INFO", service: "MySQL", message: "Database connection established" },
+  { time: "2024-01-15 14:32:10", level: "INFO", service: "后端 API", message: "Express server listening on port 3000" },
+  { time: "2024-01-15 14:32:15", level: "WARN", service: "后端 API", message: "Connection pool reaching 80% capacity" },
+  {
+    time: "2024-01-15 14:32:20",
+    level: "ERROR",
+    service: "Prometheus",
+    message: "Failed to scrape metrics from target",
+  },
+  { time: "2024-01-15 14:32:25", level: "INFO", service: "Redis", message: "Background saving started" },
+  { time: "2024-01-15 14:32:30", level: "INFO", service: "后端 API", message: "GET /api/users 200 45ms" },
+  { time: "2024-01-15 14:32:35", level: "DEBUG", service: "后端 API", message: "Query executed: SELECT * FROM users" },
 ]
 
 export default function LogsPage() {
