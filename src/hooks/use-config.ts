@@ -127,6 +127,29 @@ export function useConfig() {
     [config, saveConfig],
   )
 
+  const deleteApplicationWithDependencies = useCallback(
+    async (appId: string) => {
+      if (!config) return false
+
+      const appToDelete = config.applications.find((a) => a.id === appId)
+      if (!appToDelete) return false
+
+      const appGroupIds = appToDelete.groupIds ?? []
+
+      const remainingApplications = config.applications.filter((a) => a.id !== appId)
+      const remainingGroups = config.groups.filter((g) => !appGroupIds.includes(g.id))
+
+      const newConfig: Config = {
+        ...config,
+        applications: remainingApplications,
+        groups: remainingGroups,
+      }
+
+      return await saveConfig(newConfig)
+    },
+    [config, saveConfig],
+  )
+
   const createGroup = useCallback(
     async (groupData: Omit<ServiceGroup, "id" | "services" | "order" | "dependencies">) => {
       if (!config) return false
@@ -361,6 +384,7 @@ export function useConfig() {
     createApplication,
     updateApplication,
     deleteApplication,
+    deleteApplicationWithDependencies,
     createGroup,
     updateGroup,
     deleteGroup,
