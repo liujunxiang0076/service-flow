@@ -18,11 +18,17 @@ import { useTheme } from "next-themes"
 export default function SettingsPage() {
   const { setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const [isDark, setIsDark] = useState(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
+  useEffect(() => {
+    if (resolvedTheme) {
+      setIsDark(resolvedTheme === "dark")
+    }
+  }, [resolvedTheme])
 
   const [config, setConfig] = useState({
     webPort: 8899,
@@ -202,8 +208,11 @@ export default function SettingsPage() {
                         {mounted ? (
                           <Switch
                             id="theme-mode"
-                            checked={resolvedTheme === "dark"}
-                            onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                            checked={isDark}
+                            onCheckedChange={(checked) => {
+                              setIsDark(checked)
+                              setTheme(checked ? "dark" : "light")
+                            }}
                           />
                         ) : (
                           <div className="h-6 w-11 animate-pulse rounded-full bg-muted" />

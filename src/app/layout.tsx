@@ -1,6 +1,7 @@
 import type React from "react"
 import { NotificationToast } from "@/components/notification-toast"
 import { KeyboardShortcutsProvider } from "@/components/keyboard-shortcuts-provider"
+import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
 
 export default function RootLayout({
@@ -9,12 +10,19 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="zh-CN" className="dark">
+    <html lang="zh-CN" suppressHydrationWarning>
       <body className={`font-sans antialiased`}>
-        <KeyboardShortcutsProvider>
-          {children}
-          <NotificationToast />
-        </KeyboardShortcutsProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <KeyboardShortcutsProvider>
+            {children}
+            <NotificationToast />
+          </KeyboardShortcutsProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
