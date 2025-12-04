@@ -13,6 +13,16 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { useConfig } from "@/hooks/use-config"
 import type { Service } from "@/types/service"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function ServicesPage() {
   const { config, loading, createService, updateService, deleteService } = useConfig()
@@ -23,6 +33,7 @@ export default function ServicesPage() {
   const [selectedServices, setSelectedServices] = useState<string[]>([])
   const [isActionLoading, setIsActionLoading] = useState(false)
   const [editingService, setEditingService] = useState<Service | null>(null)
+  const [deletingService, setDeletingService] = useState<Service | null>(null)
 
   const groups = config?.groups || []
   const applications = config?.applications || []
@@ -99,9 +110,7 @@ export default function ServicesPage() {
   }
 
   const handleDelete = async (serviceId: string) => {
-    if (confirm("确定要删除这个服务吗？此操作无法撤销。")) {
-      await deleteService(serviceId)
-    }
+    await deleteService(serviceId)
   }
 
   if (loading && !config) {
@@ -142,6 +151,31 @@ export default function ServicesPage() {
                       </Button>
                     }
                   />
+
+              {deletingService && (
+                <AlertDialog open={!!deletingService} onOpenChange={(open) => !open && setDeletingService(null)}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>删除服务</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        确定要删除服务 “{deletingService.name}” 吗？此操作无法撤销。
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>取消</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={async () => {
+                          await handleDelete(deletingService.id)
+                          setDeletingService(null)
+                        }}
+                      >
+                        删除
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
                 </div>
               }
             />
@@ -273,10 +307,13 @@ export default function ServicesPage() {
               selectedServices={selectedServices}
               onSelectionChange={setSelectedServices}
               onEdit={(serviceId) => {
-                const service = allServices.find(s => s.id === serviceId)
+                const service = allServices.find((s) => s.id === serviceId)
                 if (service) setEditingService(service)
               }}
-              onDelete={handleDelete}
+              onDelete={(serviceId) => {
+                const service = allServices.find((s) => s.id === serviceId)
+                if (service) setDeletingService(service)
+              }}
             />
           </div>
         </main>

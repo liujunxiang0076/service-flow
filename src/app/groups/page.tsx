@@ -11,6 +11,16 @@ import { useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useConfig } from "@/hooks/use-config"
 import type { ServiceGroup } from "@/types/service"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function GroupsPage() {
   const { config, loading, createGroup, updateGroup, deleteGroup } = useConfig()
@@ -18,6 +28,7 @@ export default function GroupsPage() {
   const [selectedApp, setSelectedApp] = useState<string>("all")
   const [editingGroup, setEditingGroup] = useState<ServiceGroup | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [deletingGroup, setDeletingGroup] = useState<ServiceGroup | null>(null)
 
   const groups = config?.groups || []
   const applications = config?.applications || []
@@ -31,9 +42,7 @@ export default function GroupsPage() {
   })
 
   const handleDelete = async (groupId: string) => {
-    if (confirm("确定要删除这个服务分组吗？此操作无法撤销。")) {
-      await deleteGroup(groupId)
-    }
+    await deleteGroup(groupId)
   }
 
   if (loading && !config) {
@@ -123,7 +132,7 @@ export default function GroupsPage() {
                   key={group.id} 
                   group={group} 
                   onEdit={() => setEditingGroup(group)}
-                  onDelete={() => handleDelete(group.id)}
+                  onDelete={() => setDeletingGroup(group)}
                 />
               ))
             ) : (
@@ -132,6 +141,30 @@ export default function GroupsPage() {
               </div>
             )}
           </div>
+          {deletingGroup && (
+            <AlertDialog open={!!deletingGroup} onOpenChange={(open) => !open && setDeletingGroup(null)}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>删除分组</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    确定要删除分组 “{deletingGroup.name}” 吗？此操作无法撤销。
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>取消</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={async () => {
+                      await handleDelete(deletingGroup.id)
+                      setDeletingGroup(null)
+                    }}
+                  >
+                    删除
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </main>
     </div>

@@ -14,6 +14,16 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useConfig } from "@/hooks/use-config"
 import { Loader2 } from "lucide-react"
 import type { Application } from "@/types/service"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ShoppingCart,
@@ -25,6 +35,7 @@ export default function ApplicationsPage() {
   const { config, loading, createApplication, updateApplication, deleteApplication } = useConfig()
   const [selectedApp, setSelectedApp] = useState<string | null>(null)
   const [editingApp, setEditingApp] = useState<Application | null>(null)
+  const [deletingApp, setDeletingApp] = useState<Application | null>(null)
 
   const applications = config?.applications || []
   const groups = config?.groups || []
@@ -33,9 +44,7 @@ export default function ApplicationsPage() {
   const selectedAppGroups = selectedAppData ? groups.filter((g) => selectedAppData.groupIds.includes(g.id)) : []
 
   const handleDelete = async (appId: string) => {
-    if (confirm("确定要删除这个应用吗？此操作无法撤销。")) {
-      await deleteApplication(appId)
-    }
+    await deleteApplication(appId)
   }
 
   if (loading && !config) {
@@ -126,7 +135,7 @@ export default function ApplicationsPage() {
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               className="text-destructive"
-                              onClick={() => handleDelete(app.id)}
+                              onClick={() => setDeletingApp(app)}
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
                               删除应用
@@ -206,6 +215,31 @@ export default function ApplicationsPage() {
               )
             })}
           </div>
+
+          {deletingApp && (
+            <AlertDialog open={!!deletingApp} onOpenChange={(open) => !open && setDeletingApp(null)}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>删除应用</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    确定要删除应用 “{deletingApp.name}” 吗？此操作无法撤销。
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>取消</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={async () => {
+                      await handleDelete(deletingApp.id)
+                      setDeletingApp(null)
+                    }}
+                  >
+                    删除
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
 
           <Dialog open={!!selectedApp} onOpenChange={(open) => !open && setSelectedApp(null)}>
             <DialogContent className="sm:max-w-[600px]">
