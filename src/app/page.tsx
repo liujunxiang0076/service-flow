@@ -15,6 +15,7 @@ import {
   TrendingUp,
   ShoppingCart,
   BarChart,
+  Loader2,
 } from "lucide-react"
 import { mockGroups, mockApplications } from "@/lib/mock-data"
 import { Badge } from "@/components/ui/badge"
@@ -22,6 +23,8 @@ import { Button } from "@/components/ui/button"
 import { Link } from "react-router-dom"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Progress } from "@/components/ui/progress"
+import { useState } from "react"
+import { cn } from "@/lib/utils"
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ShoppingCart,
@@ -30,6 +33,15 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 }
 
 export default function DashboardPage() {
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleRefresh = () => {
+    setIsLoading(true)
+    setTimeout(() => {
+      setIsLoading(false)
+    }, 1000)
+  }
+
   // Calculate stats from mock data
   const totalServices = mockGroups.reduce((acc, group) => acc + group.services.length, 0)
   const runningServices = mockGroups.reduce(
@@ -66,8 +78,8 @@ export default function DashboardPage() {
               actions={
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon">
-                      <RefreshCw className="h-4 w-4" />
+                    <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isLoading}>
+                      <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>刷新数据</TooltipContent>
@@ -81,7 +93,13 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">应用数</p>
-                    <p className="mt-2 text-3xl font-bold text-foreground">{mockApplications.length}</p>
+                    {isLoading ? (
+                      <div className="mt-2 h-9 flex items-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-3xl font-bold text-foreground">{mockApplications.length}</p>
+                    )}
                   </div>
                   <div className="rounded-lg bg-primary/10 p-3">
                     <Layers className="h-6 w-6 text-primary" />
@@ -94,7 +112,13 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">总服务数</p>
-                    <p className="mt-2 text-3xl font-bold text-foreground">{totalServices}</p>
+                    {isLoading ? (
+                      <div className="mt-2 h-9 flex items-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-3xl font-bold text-foreground">{totalServices}</p>
+                    )}
                   </div>
                   <div className="rounded-lg bg-accent/10 p-3">
                     <Server className="h-6 w-6 text-accent" />
@@ -107,7 +131,13 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">运行中</p>
-                    <p className="mt-2 text-3xl font-bold text-success">{runningServices}</p>
+                    {isLoading ? (
+                      <div className="mt-2 h-9 flex items-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-3xl font-bold text-success">{runningServices}</p>
+                    )}
                   </div>
                   <div className="rounded-lg bg-success/10 p-3">
                     <Activity className="h-6 w-6 text-success" />
@@ -126,7 +156,13 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">异常服务</p>
-                    <p className="mt-2 text-3xl font-bold text-destructive">{errorServices}</p>
+                    {isLoading ? (
+                      <div className="mt-2 h-9 flex items-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-3xl font-bold text-destructive">{errorServices}</p>
+                    )}
                   </div>
                   <div className="rounded-lg bg-destructive/10 p-3">
                     <AlertCircle className="h-6 w-6 text-destructive" />

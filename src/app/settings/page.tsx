@@ -10,10 +10,27 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Download, Upload, Save } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ExportConfigDialog } from "@/components/export-config-dialog"
 
 export default function SettingsPage() {
+  const [isDark, setIsDark] = useState(true)
+
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains("dark"))
+  }, [])
+
+  const toggleTheme = (checked: boolean) => {
+    const html = document.documentElement
+    if (checked) {
+      html.classList.add("dark")
+      setIsDark(true)
+    } else {
+      html.classList.remove("dark")
+      setIsDark(false)
+    }
+  }
+
   const [config, setConfig] = useState({
     webPort: 8899,
     webEnabled: true,
@@ -180,6 +197,18 @@ export default function SettingsPage() {
                     <h3 className="mb-4 text-lg font-semibold text-foreground">系统设置</h3>
 
                     <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="theme">深色模式</Label>
+                          <p className="text-sm text-muted-foreground">切换系统外观主题</p>
+                        </div>
+                        <Switch
+                          id="theme"
+                          checked={isDark}
+                          onCheckedChange={toggleTheme}
+                        />
+                      </div>
+
                       <div className="grid gap-2">
                         <Label htmlFor="logLevel">日志级别</Label>
                         <select
