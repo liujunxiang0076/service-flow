@@ -54,7 +54,6 @@ export function GlobalSearch() {
           id: app.id,
           name: app.name,
           description: app.description,
-          status: app.status,
         })
       }
     })

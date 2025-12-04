@@ -21,6 +21,7 @@ export interface Service {
   pid?: number
   startedAt?: Date
   stoppedAt?: Date
+  dependencies?: string[] // IDs of other services this service depends on
 }
 
 export interface ServiceGroup {

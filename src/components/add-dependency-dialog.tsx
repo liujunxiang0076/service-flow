@@ -77,7 +77,7 @@ export function AddDependencyDialog({ currentGroup, availableGroups, onAdd }: Ad
   }
 
   const selectedGroup = availableGroups.find((g) => g.id === selectedDep)
-  const hasCircularWarning = selectedDep && wouldCreateCircular(selectedDep)
+  const hasCircularWarning = selectedDep !== "" && wouldCreateCircular(selectedDep)
   const selectedGroupStatus = selectedGroup ? getGroupStatus(selectedGroup) : "stopped"
 
   return (
@@ -226,7 +226,7 @@ export function AddDependencyDialog({ currentGroup, availableGroups, onAdd }: Ad
           <Button variant="outline" onClick={() => setOpen(false)}>
             取消
           </Button>
-          <Button onClick={handleAdd} disabled={!selectedDep || hasCircularWarning}>
+          <Button onClick={handleAdd} disabled={selectedDep === "" || hasCircularWarning}>
             添加依赖
           </Button>
         </DialogFooter>
