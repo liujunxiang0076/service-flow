@@ -374,20 +374,6 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </Card>
-
-                <Card className="p-4">
-                  <h3 className="mb-3 font-medium text-foreground">快捷键</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">全局搜索</span>
-                      <kbd className="rounded border bg-muted px-2 py-0.5 text-xs">⌘K</kbd>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">刷新页面</span>
-                      <kbd className="rounded border bg-muted px-2 py-0.5 text-xs">⌘R</kbd>
-                    </div>
-                  </div>
-                </Card>
               </div>
             </div>
           </div>
