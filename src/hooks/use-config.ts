@@ -14,10 +14,10 @@ export function useConfig() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchConfig = useCallback(async () => {
-    // If we already have a cached config, reuse it to keep state
+  const fetchConfig = useCallback(async (forceRefresh = false) => {
+    // If we already have a cached config and not forcing refresh, reuse it to keep state
     // consistent across pages without hitting the API again.
-    if (cachedConfig) {
+    if (cachedConfig && !forceRefresh) {
       setConfig(cachedConfig)
       setLoading(false)
       return
@@ -27,8 +27,21 @@ export function useConfig() {
       setLoading(true)
       const data = await api.getConfig()
       if (data) {
-        cachedConfig = data
-        setConfig(data)
+        // Enrich services with missing fields (groupId, status, healthStatus)
+        const enrichedData = {
+          ...data,
+          groups: data.groups.map(group => ({
+            ...group,
+            services: group.services.map(service => ({
+              ...service,
+              groupId: group.id, // Add groupId to each service
+              status: service.status || 'stopped', // Default status
+              healthStatus: service.healthStatus || 'unconfigured', // Default health status
+            }))
+          }))
+        }
+        cachedConfig = enrichedData
+        setConfig(enrichedData)
       }
     } catch (err) {
       console.error("Failed to fetch config:", err)

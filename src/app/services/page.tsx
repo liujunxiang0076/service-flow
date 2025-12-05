@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 export default function ServicesPage() {
-  const { config, loading, createService, updateService, deleteService } = useConfig()
+  const { config, loading, refreshConfig, createService, updateService, deleteService } = useConfig()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedGroup, setSelectedGroup] = useState<string>("all")
   const [selectedApp, setSelectedApp] = useState<string>("all")
@@ -93,12 +93,16 @@ export default function ServicesPage() {
     }, 1000)
   }
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsActionLoading(true)
-    setTimeout(() => {
+    try {
+      await refreshConfig(true) // Force refresh from backend
       toast.success("服务列表已刷新")
+    } catch (error) {
+      toast.error("刷新失败")
+    } finally {
       setIsActionLoading(false)
-    }, 500)
+    }
   }
 
   const handleSelectAll = () => {
