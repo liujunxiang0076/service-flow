@@ -212,8 +212,8 @@ export default function DashboardPage() {
                   )
 
                   return (
-                    <Card key={app.id} className="overflow-hidden transition-shadow hover:shadow-md">
-                      <div className="border-b border-border bg-card/50 px-4 py-0">
+                    <Card key={app.id} className="overflow-hidden transition-shadow hover:shadow-md py-0 h-[225px]">
+                      <div className="border-b border-border bg-card/50 px-4 py-1.5">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-lg">
@@ -254,39 +254,35 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
-                      <div className="p-4">
-                        <div className="space-y-3">
+                      <div className="px-4 py-2.5 overflow-y-auto flex-1">
+                        <div className="space-y-1.5">
                           {appGroups.map((group) => {
                             const groupRunning = group.services.filter((s) => s.status === "running").length
                             const groupTotal = group.services.length
 
                             return (
-                              <div key={group.id} className="rounded-lg border border-border bg-muted/30 p-3">
-                                <div className="mb-2 flex items-center justify-between">
-                                  <div>
-                                    <h4 className="font-medium text-foreground">{group.name}</h4>
-                                    <p className="text-xs text-muted-foreground">{group.description}</p>
-                                  </div>
-                                  <Badge variant="secondary">
-                                    {groupRunning}/{groupTotal} 运行中
+                              <div key={group.id} className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5 transition-colors hover:bg-muted/40">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <Link to="/groups" className="hover:underline">
+                                    <h4 className="font-medium text-foreground text-sm whitespace-nowrap cursor-pointer">{group.name}</h4>
+                                  </Link>
+                                  <Badge variant="secondary" className="text-[11px] px-1.5 py-0 h-5 whitespace-nowrap">
+                                    {groupRunning}/{groupTotal}
                                   </Badge>
-                                </div>
-
-                                <div className="flex flex-wrap gap-2">
                                   {group.services.map((service) => (
-                                    <Badge
-                                      key={service.id}
-                                      variant={
-                                        service.status === "running"
-                                          ? "default"
-                                          : service.status === "error"
-                                            ? "destructive"
-                                            : "outline"
-                                      }
-                                      className="text-xs"
-                                    >
+                                    <Link key={service.id} to="/services">
+                                      <Badge
+                                        variant={
+                                          service.status === "running"
+                                            ? "default"
+                                            : service.status === "error"
+                                              ? "destructive"
+                                              : "outline"
+                                        }
+                                        className="text-[11px] px-2 py-0 h-5 cursor-pointer hover:opacity-80 transition-opacity"
+                                      >
                                       <span
-                                        className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${
+                                        className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${
                                           service.status === "running"
                                             ? "bg-success"
                                             : service.status === "error"
@@ -295,7 +291,8 @@ export default function DashboardPage() {
                                         }`}
                                       />
                                       {service.name}
-                                    </Badge>
+                                      </Badge>
+                                    </Link>
                                   ))}
                                 </div>
                               </div>
@@ -319,7 +316,7 @@ export default function DashboardPage() {
                   </Link>
                 </div>
 
-                <Card className="p-4">
+                <Card className="p-4 h-[225px] overflow-y-auto">
                   <div className="space-y-4">
                     {recentActivities.map((activity) => (
                       <div key={activity.id} className="flex items-start gap-3">
@@ -348,9 +345,9 @@ export default function DashboardPage() {
                   </div>
                 </Card>
 
-                <Card className="p-4">
-                  <h3 className="mb-4 font-medium text-foreground">快速统计</h3>
-                  <div className="space-y-3">
+                <Card className="p-4 h-[225px] overflow-hidden">
+                  <h3 className="mb-3 font-medium text-foreground">快速统计</h3>
+                  <div className="space-y-2.5">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">运行中服务</span>
                       <span className="text-sm font-medium text-success">{runningServices}</span>
@@ -363,14 +360,14 @@ export default function DashboardPage() {
                       <span className="text-sm text-muted-foreground">异常服务</span>
                       <span className="text-sm font-medium text-destructive">{errorServices}</span>
                     </div>
-                    <div className="pt-3 border-t">
+                    <div className="pt-2.5 border-t">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">健康度</span>
                         <span className="text-sm font-medium">
                           {((runningServices / totalServices) * 100).toFixed(0)}%
                         </span>
                       </div>
-                      <Progress value={(runningServices / totalServices) * 100} className="mt-2 h-2" />
+                      <Progress value={(runningServices / totalServices) * 100} className="mt-1.5 h-2" />
                     </div>
                   </div>
                 </Card>
