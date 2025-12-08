@@ -83,6 +83,34 @@ pub struct HealthCheckConfig {
     pub start_period: Option<u64>,
 }
 
+// 依赖类型
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DependencyType {
+    Required,  // 必需依赖
+    Optional,  // 可选依赖
+    Conflict,  // 冲突依赖
+}
+
+// 启动策略
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum StartupStrategy {
+    Sequential, // 顺序启动
+    Parallel,   // 并行启动
+    Mixed,      // 混合模式
+}
+
+// 依赖配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DependencyConfig {
+    pub service_id: String,
+    pub r#type: DependencyType,
+    pub timeout: Option<u64>,
+    pub health_check_required: Option<bool>,
+}
+
 // 保留旧的 HealthCheck 结构体以兼容旧配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -113,6 +141,8 @@ pub struct Service {
     pub startup_delay: u64,
     #[serde(default)]
     pub dependencies: Vec<String>,
+    #[serde(default)]
+    pub dependency_configs: Option<Vec<DependencyConfig>>,
     
     // 新增配置字段
     #[serde(default)]
@@ -133,6 +163,16 @@ pub struct Service {
     // 保留旧的 health_check 字段以兼容旧配置
     #[serde(skip_serializing_if = "Option::is_none", alias = "healthCheck")]
     pub old_health_check: Option<HealthCheck>,
+    
+    // 运行时信息
+    #[serde(default)]
+    pub exit_code: Option<i32>,
+    #[serde(default)]
+    pub exit_signal: Option<String>,
+    #[serde(default)]
+    pub crash_count: Option<u32>,
+    #[serde(default)]
+    pub last_crash_time: Option<String>,
 }
 
 // 保留旧的 Task 结构体作为别名，用于向后兼容
@@ -154,6 +194,8 @@ pub struct ServiceGroup {
     pub order: i32,
     #[serde(default)]
     pub dependencies: Vec<String>,
+    #[serde(default)]
+    pub startup_strategy: Option<StartupStrategy>,
 }
 
 // 保留旧的 Group 结构体作为别名，用于向后兼容

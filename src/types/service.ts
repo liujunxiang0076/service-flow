@@ -1,8 +1,35 @@
-export type ServiceStatus = "running" | "stopped" | "starting" | "stopping" | "error"
+export type ServiceStatus = 
+  | "running"      // 正常运行
+  | "stopped"      // 已停止
+  | "starting"     // 启动中
+  | "stopping"     // 停止中
+  | "restarting"   // 重启中
+  | "crashed"      // 崩溃（非正常退出）
+  | "error"        // 错误状态
 export type HealthStatus = "healthy" | "unhealthy" | "unconfigured" | "checking"
 export type CheckType = "http" | "tcp" | "command"
 
 export type ServiceType = "tomcat" | "redis" | "nginx" | "mysql" | "nodejs" | "batch" | "shell" | "python" | "custom"
+
+// 依赖类型
+export type DependencyType = 
+  | "required"   // 必需依赖，依赖服务必须成功启动
+  | "optional"   // 可选依赖，依赖服务失败不影响本服务启动
+  | "conflict"   // 冲突依赖，不能与指定服务同时运行
+
+// 启动策略
+export type StartupStrategy = 
+  | "sequential" // 顺序启动，等待前一个服务启动完成
+  | "parallel"   // 并行启动，同时启动所有服务
+  | "mixed"      // 混合模式，根据依赖关系智能决定
+
+// 依赖配置
+export interface DependencyConfig {
+  serviceId: string
+  type: DependencyType
+  timeout?: number // 等待依赖服务启动的超时时间（毫秒）
+  healthCheckRequired?: boolean // 是否需要等待依赖服务健康检查通过
+}
 
 export interface RetryConfig {
   enabled: boolean
@@ -77,7 +104,8 @@ export interface Service {
   pid?: number
   startedAt?: Date
   stoppedAt?: Date
-  dependencies?: string[] // IDs of other services this service depends on
+  dependencies?: string[] // 简单依赖列表（向后兼容）
+  dependencyConfigs?: DependencyConfig[] // 详细依赖配置
   
   // 新增配置
   retryConfig?: RetryConfig
@@ -87,6 +115,12 @@ export interface Service {
   processConfig?: ProcessConfig
   healthCheck?: HealthCheckConfig
   metrics?: ServiceMetrics
+  
+  // 运行时信息
+  exitCode?: number // 最后退出码
+  exitSignal?: string // 最后退出信号
+  crashCount?: number // 崩溃次数
+  lastCrashTime?: Date // 最后崩溃时间
 }
 
 export interface ServiceGroup {
@@ -98,6 +132,7 @@ export interface ServiceGroup {
   services: Service[]
   order: number
   dependencies: string[] // IDs of other service groups this group depends on
+  startupStrategy?: StartupStrategy // 组内服务启动策略
 }
 
 export interface HealthCheck {
