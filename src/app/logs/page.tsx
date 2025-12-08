@@ -5,9 +5,12 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Search, Download, Trash2, Play, Pause, RefreshCw, Settings } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { mockGroups, defaultLogConfig } from "@/lib/mock-data"
+import { defaultLogConfig } from "@/lib/mock-data"
 import { useState, useRef, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
+import { useLogs } from "@/hooks/use-logs"
+import { useConfig } from "@/hooks/use-config"
+import type { UnlistenFn } from "@tauri-apps/api/event"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   Dialog,
@@ -21,23 +24,9 @@ import {
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
-const mockLogs = [
-  { time: "2024-01-15 14:32:01", level: "INFO", service: "Redis", message: "Server started on port 6379" },
-  { time: "2024-01-15 14:32:05", level: "INFO", service: "MySQL", message: "Database connection established" },
-  { time: "2024-01-15 14:32:10", level: "INFO", service: "后端 API", message: "Express server listening on port 3000" },
-  { time: "2024-01-15 14:32:15", level: "WARN", service: "后端 API", message: "Connection pool reaching 80% capacity" },
-  {
-    time: "2024-01-15 14:32:20",
-    level: "ERROR",
-    service: "Prometheus",
-    message: "Failed to scrape metrics from target",
-  },
-  { time: "2024-01-15 14:32:25", level: "INFO", service: "Redis", message: "Background saving started" },
-  { time: "2024-01-15 14:32:30", level: "INFO", service: "后端 API", message: "GET /api/users 200 45ms" },
-  { time: "2024-01-15 14:32:35", level: "DEBUG", service: "后端 API", message: "Query executed: SELECT * FROM users" },
-]
-
 export default function LogsPage() {
+  const { config } = useConfig()
+  const { logs, isListening, clearLogs, exportLogs, startListening } = useLogs()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedService, setSelectedService] = useState<string>("all")
   const [selectedLevel, setSelectedLevel] = useState<string>("all")
@@ -46,9 +35,27 @@ export default function LogsPage() {
   const [configOpen, setConfigOpen] = useState(false)
   const logContainerRef = useRef<HTMLDivElement>(null)
 
-  const allServices = mockGroups.flatMap((g) => g.services)
+  const allServices = config?.groups.flatMap((g) => g.services) || []
 
-  const filteredLogs = mockLogs.filter((log) => {
+  // 启动日志监听
+  useEffect(() => {
+    let unlisteners: UnlistenFn[] = []
+
+    if (config) {
+      const serviceIds = allServices.map((s) => s.id)
+      const serviceNames = new Map(allServices.map((s) => [s.id, s.name]))
+      
+      startListening(serviceIds, serviceNames).then((listeners) => {
+        unlisteners = listeners
+      })
+    }
+
+    return () => {
+      unlisteners.forEach((unlisten) => unlisten())
+    }
+  }, [config, allServices, startListening])
+
+  const filteredLogs = logs.filter((log) => {
     const matchesSearch = log.message.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesService = selectedService === "all" || log.service === selectedService
     const matchesLevel = selectedLevel === "all" || log.level === selectedLevel
@@ -62,8 +69,22 @@ export default function LogsPage() {
   }, [filteredLogs, autoScroll])
 
   const handleRefresh = () => {
-    console.log("[v0] Refreshing logs...")
-    // In real implementation, this would fetch new logs
+    // 刷新配置以获取最新的服务列表
+    if (config) {
+      const serviceIds = allServices.map((s) => s.id)
+      const serviceNames = new Map(allServices.map((s) => [s.id, s.name]))
+      startListening(serviceIds, serviceNames)
+    }
+  }
+
+  const handleClearLogs = () => {
+    if (confirm('确定要清空所有日志吗？')) {
+      clearLogs()
+    }
+  }
+
+  const handleExportLogs = () => {
+    exportLogs()
   }
 
   return (
@@ -189,7 +210,7 @@ export default function LogsPage() {
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={handleExportLogs} disabled={logs.length === 0}>
                           <Download className="mr-2 h-4 w-4" />
                           导出
                         </Button>
@@ -201,7 +222,7 @@ export default function LogsPage() {
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={handleClearLogs} disabled={logs.length === 0}>
                           <Trash2 className="mr-2 h-4 w-4" />
                           清空
                         </Button>
@@ -297,8 +318,11 @@ export default function LogsPage() {
               </div>
 
               <div className="border-t border-border bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
-                显示 {filteredLogs.length} 条日志
+                显示 {filteredLogs.length} 条日志 / 总共 {logs.length} 条
                 {autoScroll && <span className="ml-4">• 自动滚动已启用</span>}
+                <span className="ml-4">
+                  • 状态: {isListening ? "监听中" : "未监听"}
+                </span>
                 <span className="ml-4">
                   • 模式: {
                     logConfig.mode === "realtime" ? "实时获取" : logConfig.mode === "periodic" ? "定期获取" : "手动获取"

@@ -47,6 +47,85 @@ export function ServiceTable({
     return app?.name || "-"
   }
 
+  const formatStartTime = (startedAt: Date | undefined): string => {
+    if (!startedAt) return '-'
+    
+    const now = new Date()
+    const start = new Date(startedAt)
+    
+    // 检查是否是今天
+    const isToday = now.getFullYear() === start.getFullYear() &&
+                    now.getMonth() === start.getMonth() &&
+                    now.getDate() === start.getDate()
+    
+    if (isToday) {
+      // 今天只显示时间 HH:mm
+      return start.toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      })
+    } else {
+      // 非今天显示日期+时间 YY-MM-DD HH:mm
+      const year = start.getFullYear().toString().slice(-2)
+      const month = (start.getMonth() + 1).toString().padStart(2, '0')
+      const day = start.getDate().toString().padStart(2, '0')
+      const hour = start.getHours().toString().padStart(2, '0')
+      const minute = start.getMinutes().toString().padStart(2, '0')
+      return `${year}-${month}-${day} ${hour}:${minute}`
+    }
+  }
+
+  const getServicePort = (service: Service): string | null => {
+    // 从健康检查配置中获取端口
+    if (service.healthCheck) {
+      const healthCheck = service.healthCheck as any
+      console.log(`[getServicePort] ${service.id} healthCheck:`, healthCheck)
+      
+      // 直接从 healthCheck 对象获取 port（旧格式）
+      if (healthCheck.port) {
+        console.log(`[getServicePort] ${service.id} found port:`, healthCheck.port)
+        return healthCheck.port.toString()
+      }
+      
+      // 从 URL 中提取端口（旧格式）
+      if (healthCheck.url) {
+        try {
+          const url = new URL(healthCheck.url)
+          if (url.port) {
+            console.log(`[getServicePort] ${service.id} extracted port from URL:`, url.port)
+            return url.port
+          }
+          // 默认端口
+          if (url.protocol === 'http:') return '80'
+          if (url.protocol === 'https:') return '443'
+        } catch (e) {
+          console.error(`[getServicePort] ${service.id} URL parse error:`, e)
+        }
+      }
+      
+      // 从 config 对象获取（新格式）
+      if (healthCheck.config) {
+        const config = healthCheck.config
+        if (config.port) return config.port.toString()
+        if (config.url) {
+          try {
+            const url = new URL(config.url)
+            if (url.port) return url.port
+            if (url.protocol === 'http:') return '80'
+            if (url.protocol === 'https:') return '443'
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+    } else {
+      console.log(`[getServicePort] ${service.id} no healthCheck`)
+    }
+    
+    return null
+  }
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       onSelectionChange?.(services.map((s) => s.id))
@@ -101,16 +180,17 @@ export function ServiceTable({
             <TableHead>所属应用</TableHead>
             <TableHead>分组</TableHead>
             <TableHead>健康状态</TableHead>
+            <TableHead>端口</TableHead>
             <TableHead>PID</TableHead>
             <TableHead>启动时间</TableHead>
             <TableHead>依赖</TableHead>
-            <TableHead className="text-right">操作</TableHead>
+            <TableHead className="text-center">操作</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {services.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={onSelectionChange ? 10 : 9} className="h-24 text-center">
+              <TableCell colSpan={onSelectionChange ? 11 : 10} className="h-24 text-center">
                 <div className="flex flex-col items-center justify-center text-muted-foreground">
                   <p>暂无服务</p>
                   <p className="text-sm">点击"新建服务"按钮创建第一个服务</p>
@@ -183,6 +263,14 @@ export function ServiceTable({
                 </TableCell>
 
                 <TableCell>
+                  {getServicePort(service) ? (
+                    <span className="font-mono text-sm">{getServicePort(service)}</span>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </TableCell>
+
+                <TableCell>
                   {service.pid ? (
                     <span className="font-mono text-sm">{service.pid}</span>
                   ) : (
@@ -191,11 +279,7 @@ export function ServiceTable({
                 </TableCell>
 
                 <TableCell>
-                  {service.startedAt ? (
-                    <span className="text-sm">{new Date(service.startedAt).toLocaleString("zh-CN")}</span>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
+                  <span className="text-sm">{formatStartTime(service.startedAt)}</span>
                 </TableCell>
 
                 <TableCell>
@@ -208,13 +292,18 @@ export function ServiceTable({
                   )}
                 </TableCell>
 
-                <TableCell className="text-right">
+                <TableCell>
                   <TooltipProvider>
-                    <div className="flex justify-end gap-1">
+                    <div className="flex justify-center gap-1">
                       {service.status === "stopped" || service.status === "error" ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button size="sm" variant="ghost" onClick={() => handleStart(service.id, service.name)}>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              onClick={() => handleStart(service.id, service.name)}
+                              className="hover:bg-green-50 hover:text-green-600"
+                            >
                               <Play className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
@@ -224,7 +313,12 @@ export function ServiceTable({
                         <>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button size="sm" variant="ghost" onClick={() => handleRestart(service.id, service.name)}>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={() => handleRestart(service.id, service.name)}
+                                className="hover:bg-blue-50 hover:text-blue-600"
+                              >
                                 <RotateCw className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
@@ -232,7 +326,12 @@ export function ServiceTable({
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button size="sm" variant="ghost" onClick={() => handleStop(service.id, service.name)}>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={() => handleStop(service.id, service.name)}
+                                className="hover:bg-red-50 hover:text-red-600"
+                              >
                                 <Square className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
