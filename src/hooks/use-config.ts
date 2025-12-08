@@ -28,17 +28,28 @@ export function useConfig() {
       const data = await api.getConfig()
       if (data) {
         // Enrich services with missing fields (groupId, status, healthStatus)
+        // and check actual running status from backend
+        const enrichedGroups = await Promise.all(
+          data.groups.map(async (group) => ({
+            ...group,
+            services: await Promise.all(
+              group.services.map(async (service) => {
+                // Check if service is actually running
+                const isRunning = await api.isTaskRunning(service.id)
+                return {
+                  ...service,
+                  groupId: group.id, // Add groupId to each service
+                  status: (isRunning ? 'running' : 'stopped') as 'running' | 'stopped', // Get actual status
+                  healthStatus: service.healthStatus || 'unconfigured', // Default health status
+                }
+              })
+            ),
+          }))
+        )
+        
         const enrichedData = {
           ...data,
-          groups: data.groups.map(group => ({
-            ...group,
-            services: group.services.map(service => ({
-              ...service,
-              groupId: group.id, // Add groupId to each service
-              status: service.status || 'stopped', // Default status
-              healthStatus: service.healthStatus || 'unconfigured', // Default health status
-            }))
-          }))
+          groups: enrichedGroups,
         }
         cachedConfig = enrichedData
         setConfig(enrichedData)
@@ -384,6 +395,129 @@ export function useConfig() {
     [config, saveConfig],
   )
 
+  const startService = useCallback(
+    async (serviceId: string) => {
+      try {
+        await api.startTask(serviceId)
+        toast({
+          title: "服务启动中",
+          description: "正在启动服务...",
+        })
+        
+        // Wait a bit for the service to start, then check status
+        setTimeout(async () => {
+          await fetchConfig(true)
+          const isRunning = await api.isTaskRunning(serviceId)
+          if (isRunning) {
+            toast({
+              title: "服务已启动",
+              description: "服务启动成功",
+            })
+          } else {
+            toast({
+              title: "服务启动失败",
+              description: "服务未能成功启动，请查看日志",
+              variant: "destructive",
+            })
+          }
+        }, 1500)
+        
+        return true
+      } catch (err) {
+        console.error("Failed to start service:", err)
+        toast({
+          title: "启动服务失败",
+          description: err instanceof Error ? err.message : "无法启动服务，请重试。",
+          variant: "destructive",
+        })
+        return false
+      }
+    },
+    [fetchConfig],
+  )
+
+  const stopService = useCallback(
+    async (serviceId: string) => {
+      try {
+        await api.stopTask(serviceId)
+        toast({
+          title: "服务停止中",
+          description: "正在停止服务...",
+        })
+        
+        // Wait a bit for the service to stop, then check status
+        setTimeout(async () => {
+          await fetchConfig(true)
+          const isRunning = await api.isTaskRunning(serviceId)
+          if (!isRunning) {
+            toast({
+              title: "服务已停止",
+              description: "服务停止成功",
+            })
+          } else {
+            toast({
+              title: "服务停止失败",
+              description: "服务未能成功停止，请重试",
+              variant: "destructive",
+            })
+          }
+        }, 1000)
+        
+        return true
+      } catch (err) {
+        console.error("Failed to stop service:", err)
+        toast({
+          title: "停止服务失败",
+          description: err instanceof Error ? err.message : "无法停止服务，请重试。",
+          variant: "destructive",
+        })
+        return false
+      }
+    },
+    [fetchConfig],
+  )
+
+  const restartService = useCallback(
+    async (serviceId: string) => {
+      try {
+        await api.restartTask(serviceId)
+        toast({
+          title: "服务重启中",
+          description: "正在重启服务...",
+        })
+        
+        // Wait a bit for the service to restart, then check status
+        setTimeout(async () => {
+          await fetchConfig(true)
+          const isRunning = await api.isTaskRunning(serviceId)
+          if (isRunning) {
+            toast({
+              title: "服务已重启",
+              description: "服务重启成功",
+            })
+          } else {
+            toast({
+              title: "服务重启失败",
+              description: "服务未能成功重启，请查看日志",
+              variant: "destructive",
+            })
+          }
+        }, 2000)
+        
+        return true
+      } catch (err) {
+        console.error("Failed to restart service:", err)
+        toast({
+          title: "重启服务失败",
+          description: err instanceof Error ? err.message : "无法重启服务，请重试。",
+          variant: "destructive",
+        })
+        return false
+      }
+    },
+    [fetchConfig],
+  )
+
   useEffect(() => {
     fetchConfig()
   }, [fetchConfig])
@@ -404,5 +538,8 @@ export function useConfig() {
     createService,
     updateService,
     deleteService,
+    startService,
+    stopService,
+    restartService,
   }
 }

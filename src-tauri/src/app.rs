@@ -134,12 +134,14 @@ impl App {
         
         // 启动自动启动的任务
         if config.get().settings.auto_start {
-            self.orchestrator.start_all(config.get());
+            if let Err(e) = self.orchestrator.start_all(config.get()) {
+                log::error!("Failed to start all tasks: {}", e);
+            }
         }
         
         // 启动健康检查
         for group in &config.get().groups {
-            for task in &group.tasks {
+            for task in &group.services {
                 self.health_checker.start_checking(task);
             }
         }
@@ -267,11 +269,25 @@ pub fn get_server_health() -> Result<ServerHealthResponse, String> {
 
 #[tauri::command]
 pub fn start_task(app: State<App>, task_id: String) -> Result<(), String> {
+    // 重新加载配置以确保使用最新的服务列表
+    let config = app.config.lock().unwrap();
+    if let Some(manager) = config.as_ref() {
+        app.orchestrator.set_config(manager.get().clone());
+    }
+    drop(config);
+    
     app.orchestrator.start_task(&task_id).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn stop_task(app: State<App>, task_id: String) -> Result<(), String> {
+    // 重新加载配置以确保使用最新的服务列表
+    let config = app.config.lock().unwrap();
+    if let Some(manager) = config.as_ref() {
+        app.orchestrator.set_config(manager.get().clone());
+    }
+    drop(config);
+    
     app.orchestrator.stop_task(&task_id).map_err(|e| e.to_string())
 }
 
@@ -279,7 +295,9 @@ pub fn stop_task(app: State<App>, task_id: String) -> Result<(), String> {
 pub fn start_all(app: State<App>) {
     let config = app.config.lock().unwrap();
     if let Some(manager) = config.as_ref() {
-        app.orchestrator.start_all(manager.get());
+        if let Err(e) = app.orchestrator.start_all(manager.get()) {
+            log::error!("Failed to start all tasks: {}", e);
+        }
     }
 }
 
@@ -301,6 +319,13 @@ pub fn get_task_pid(app: State<App>, task_id: String) -> u32 {
 
 #[tauri::command]
 pub fn restart_task(app: State<App>, task_id: String) -> Result<(), String> {
+    // 重新加载配置以确保使用最新的服务列表
+    let config = app.config.lock().unwrap();
+    if let Some(manager) = config.as_ref() {
+        app.orchestrator.set_config(manager.get().clone());
+    }
+    drop(config);
+    
     app.orchestrator.restart_task(&task_id).map_err(|e| e.to_string())
 }
 
@@ -321,7 +346,7 @@ pub fn restart_health_check(app: State<App>, task_id: String) -> Result<(), Stri
     
     // 查找任务
     for group in &config.get().groups {
-        for task in &group.tasks {
+        for task in &group.services {
             if task.id == task_id {
                 app.health_checker.restart_checking(task);
                 return Ok(());
@@ -339,7 +364,7 @@ pub fn stop_all_tasks(app: State<App>) -> Result<(), String> {
     
     // 停止所有任务
     for group in &config.get().groups {
-        for task in &group.tasks {
+        for task in &group.services {
             app.orchestrator.stop_task(&task.id).map_err(|e| e.to_string())?;
         }
     }

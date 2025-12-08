@@ -32,7 +32,7 @@ impl HealthChecker {
     }
     
     pub fn start_checking(&self, task: &Task) {
-        if let Some(health_check) = &task.health_check {
+        if let Some(health_check) = &task.old_health_check {
             let task_id = task.id.clone();
             let health_check = health_check.clone();
             let callback = self.callback.clone();

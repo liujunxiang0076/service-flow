@@ -161,7 +161,7 @@ pub struct Service {
     pub metrics: Option<ServiceMetrics>,
     
     // 保留旧的 health_check 字段以兼容旧配置
-    #[serde(skip_serializing_if = "Option::is_none", alias = "healthCheck")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub old_health_check: Option<HealthCheck>,
     
     // 运行时信息
@@ -199,6 +199,7 @@ pub struct ServiceGroup {
 }
 
 // 保留旧的 Group 结构体作为别名，用于向后兼容
+#[allow(dead_code)]
 pub type Group = ServiceGroup;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

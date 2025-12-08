@@ -13,10 +13,10 @@
           "id": "redis",
           "name": "Redis",
           "type": "cmd",
-          "path": "D:\\Redis\\redis-server.exe",
-          "workDir": "D:\\Redis\\",
-          "args": "redis.conf",
-          "autoStart": true,
+          "path": "D:\\Environment\\Redis-x64-3.0.504\\redis-server.exe",
+          "workDir": "D:\\Environment\\Redis-x64-3.0.504\\",
+          "args": ["redis.windows.conf"],
+          "autoStart": false,
           "dependencies": [],
           "healthCheck": {
             "type": "tcp",
@@ -32,7 +32,7 @@
           "type": "cmd",
           "path": "D:\\Tomcat\\bin\\startup.bat",
           "workDir": "D:\\Tomcat\\bin\\",
-          "args": "",
+          "args": [],
           "autoStart": true,
           "dependencies": ["redis"],
           "healthCheck": {
@@ -48,7 +48,7 @@
           "type": "cmd",
           "path": "D:\\Nginx\\nginx.exe",
           "workDir": "D:\\Nginx\\",
-          "args": "",
+          "args": [],
           "autoStart": true,
           "dependencies": ["tomcat"],
           "healthCheck": {
@@ -71,7 +71,7 @@
           "type": "cmd",
           "path": "D:\\Program2\\start.bat",
           "workDir": "D:\\Program2\\",
-          "args": "",
+          "args": [],
           "autoStart": true
         }
       ]
@@ -87,7 +87,7 @@
           "type": "cmd",
           "path": "E:\\code\\Project\\service-flow\\test-ping.bat",
           "workDir": "E:\\code\\Project\\service-flow\\",
-          "args": "",
+          "args": [],
           "autoStart": false
         }
       ]

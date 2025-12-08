@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 export default function ServicesPage() {
-  const { config, loading, refreshConfig, createService, updateService, deleteService } = useConfig()
+  const { config, loading, refreshConfig, createService, updateService, deleteService, startService, stopService, restartService } = useConfig()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedGroup, setSelectedGroup] = useState<string>("all")
   const [selectedApp, setSelectedApp] = useState<string>("all")
@@ -310,6 +310,9 @@ export default function ServicesPage() {
               applications={applications}
               selectedServices={selectedServices}
               onSelectionChange={setSelectedServices}
+              onStart={startService}
+              onStop={stopService}
+              onRestart={restartService}
               onEdit={(serviceId) => {
                 const service = allServices.find((s) => s.id === serviceId)
                 if (service) setEditingService(service)

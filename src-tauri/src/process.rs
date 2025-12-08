@@ -29,6 +29,7 @@ impl From<std::io::Error> for ProcessError {
 pub type LogCallback = Arc<dyn Fn(&str, &str) + Send + Sync + 'static>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ProcessStats {
     pub pid: u32,
     pub cpu_percent: f32,
@@ -41,6 +42,7 @@ pub struct ProcessStats {
 pub struct ProcessManager {
     processes: Arc<Mutex<HashMap<String, Child>>>,
     log_callback: LogCallback,
+    #[allow(dead_code)]
     system: Arc<Mutex<System>>,
 }
 
@@ -54,11 +56,30 @@ impl ProcessManager {
     }
     
     pub fn start(&self, task_id: &str, path: &str, work_dir: Option<&str>, args: Option<&Vec<String>>, env: Option<&HashMap<String, String>>) -> Result<(), ProcessError> {
+        log::info!("Starting process: task_id={}, path={}, args={:?}, work_dir={:?}", 
+                   task_id, path, args, work_dir);
+        
+        // 检查可执行文件是否存在（如果是绝对路径）
+        let exe_path = std::path::Path::new(path);
+        if exe_path.is_absolute() && !exe_path.exists() {
+            log::error!("Executable file does not exist: {}", path);
+            return Err(ProcessError::StartError(format!("Executable file does not exist: {}", path)));
+        }
+        
         let mut cmd = Command::new(path);
         
         // 设置工作目录
         if let Some(wd) = work_dir {
-            cmd.current_dir(wd);
+            let wd = wd.trim();
+            if !wd.is_empty() {
+                // 检查工作目录是否存在
+                let work_path = std::path::Path::new(wd);
+                if !work_path.exists() {
+                    log::warn!("Work directory does not exist: {}", wd);
+                    return Err(ProcessError::StartError(format!("Work directory does not exist: {}", wd)));
+                }
+                cmd.current_dir(wd);
+            }
         }
         
         // 解析并添加参数
@@ -76,7 +97,10 @@ impl ProcessManager {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .map_err(|e| ProcessError::StartError(e.to_string()))?;
+            .map_err(|e| {
+                log::error!("Failed to spawn process: {}", e);
+                ProcessError::StartError(e.to_string())
+            })?;
         
         // 保存进程
         {
@@ -182,6 +206,7 @@ impl ProcessManager {
         processes.keys().cloned().collect()
     }
     
+    #[allow(dead_code)]
     pub fn get_process_info(&self, pid: u32) -> bool {
         let mut system = self.system.lock().unwrap();
         system.refresh_processes();
@@ -191,6 +216,7 @@ impl ProcessManager {
     }
     
     /// 获取进程统计信息
+    #[allow(dead_code)]
     pub fn get_process_stats(&self, task_id: &str) -> Option<ProcessStats> {
         let pid = self.get_pid(task_id)?;
         let mut system = self.system.lock().unwrap();
@@ -209,6 +235,7 @@ impl ProcessManager {
     }
     
     /// 优雅关闭进程
+    #[allow(dead_code)]
     pub fn graceful_shutdown(&self, task_id: &str, timeout: Duration) -> Result<(), ProcessError> {
         let mut processes = self.processes.lock().unwrap();
         

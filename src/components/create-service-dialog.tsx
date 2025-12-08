@@ -106,6 +106,14 @@ const serviceTemplates: Record<
     defaultWorkDir: "",
     icon: "🐚",
   },
+  python: {
+    name: "Python 应用",
+    description: "Python 应用程序",
+    defaultPath: "python",
+    defaultArgs: "app.py",
+    defaultWorkDir: "",
+    icon: "🐍",
+  },
   custom: {
     name: "自定义服务",
     description: "自定义可执行程序",
@@ -242,10 +250,27 @@ export function ServiceDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    // 解析参数：支持空格、换行分隔，并处理引号
+    const parseArgs = (argsStr: string): string[] => {
+      if (!argsStr.trim()) return []
+      
+      // 先按换行分割，再按空格分割
+      const lines = argsStr.split(/\r?\n/).filter(line => line.trim())
+      const args: string[] = []
+      
+      for (const line of lines) {
+        // 使用正则表达式处理引号
+        const matches = line.match(/(?:[^\s"]+|"[^"]*")+/g) || []
+        args.push(...matches.map(arg => arg.replace(/^"|"$/g, '')))
+      }
+      
+      return args
+    }
+    
     const submitData = {
       ...formData,
       type: serviceType,
-      args: formData.args ? formData.args.split(" ") : [],
+      args: parseArgs(formData.args),
     }
     onSubmit?.(mode === "edit" ? { ...initialData, ...submitData } : submitData)
     setOpen(false)
