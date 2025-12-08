@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use std::collections::HashSet;
-use crate::config::{Config, Task};
+use crate::config::{Config, Service};
 use crate::process::ProcessManager;
 use thiserror::Error;
 
@@ -42,11 +42,11 @@ impl Orchestrator {
         // 保存配置
         self.set_config(config.clone());
         
-        // 按依赖顺序启动所有任务
+        // 按依赖顺序启动所有服务
         for group in &config.groups {
-            for task in &group.tasks {
-                if task.auto_start {
-                    let _ = self.start_task(&task.id);
+            for service in &group.services {
+                if service.auto_start {
+                    let _ = self.start_task(&service.id);
                 }
             }
         }
@@ -115,9 +115,9 @@ impl Orchestrator {
             .find(|g| g.id == group_id)
             .ok_or(OrchestratorError::GroupNotFound(group_id.to_string()))?;
         
-        // 启动组内所有任务
-        for task in &group.tasks {
-            self.start_task(&task.id)?;
+        // 启动组内所有服务
+        for service in &group.services {
+            self.start_task(&service.id)?;
         }
         
         Ok(())
@@ -132,19 +132,19 @@ impl Orchestrator {
             .find(|g| g.id == group_id)
             .ok_or(OrchestratorError::GroupNotFound(group_id.to_string()))?;
         
-        // 停止组内所有任务
-        for task in &group.tasks {
-            self.stop_task(&task.id)?;
+        // 停止组内所有服务
+        for service in &group.services {
+            self.stop_task(&service.id)?;
         }
         
         Ok(())
     }
     
-    fn find_task<'a>(&self, task_id: &str, config: &'a Config) -> Result<&'a Task, OrchestratorError> {
+    fn find_task<'a>(&self, task_id: &str, config: &'a Config) -> Result<&'a Service, OrchestratorError> {
         for group in &config.groups {
-            for task in &group.tasks {
-                if task.id == task_id {
-                    return Ok(task);
+            for service in &group.services {
+                if service.id == task_id {
+                    return Ok(service);
                 }
             }
         }
@@ -157,11 +157,11 @@ impl Orchestrator {
         let mut visited = HashSet::new();
         let mut recursion_stack = HashSet::new();
         
-        // 获取所有任务ID
+        // 获取所有服务ID
         let mut all_tasks = Vec::new();
         for group in &config.groups {
-            for task in &group.tasks {
-                all_tasks.push(task.id.clone());
+            for service in &group.services {
+                all_tasks.push(service.id.clone());
             }
         }
         

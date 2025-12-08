@@ -15,6 +15,77 @@ pub enum ConfigError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct RetryConfig {
+    pub enabled: bool,
+    pub max_retries: u32,
+    pub retry_delay: u64,
+    pub backoff_multiplier: Option<f32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TimeoutConfig {
+    pub start_timeout: u64,
+    pub stop_timeout: u64,
+    pub health_check_timeout: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceLogConfig {
+    pub enabled: bool,
+    pub path: Option<String>,
+    pub level: String,
+    pub max_size: Option<u32>,
+    pub max_files: Option<u32>,
+    pub rotation: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResourceLimits {
+    pub max_memory: Option<u32>,
+    pub max_cpu: Option<u32>,
+    pub priority: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProcessConfig {
+    pub kill_signal: Option<String>,
+    pub graceful_shutdown_timeout: Option<u64>,
+    pub restart_on_crash: Option<bool>,
+    pub env_file: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceMetrics {
+    pub cpu_usage: Option<f32>,
+    pub memory_usage: Option<u64>,
+    pub uptime: Option<u64>,
+    pub restart_count: Option<u32>,
+    pub last_exit_code: Option<i32>,
+    pub last_exit_signal: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HealthCheckConfig {
+    pub enabled: bool,
+    pub r#type: String,
+    pub config: serde_json::Value,
+    pub interval: u64,
+    pub timeout: u64,
+    pub retries: u32,
+    pub failure_threshold: u32,
+    pub success_threshold: u32,
+    pub start_period: Option<u64>,
+}
+
+// 保留旧的 HealthCheck 结构体以兼容旧配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct HealthCheck {
     pub r#type: String,
     pub host: Option<String>,
@@ -26,24 +97,50 @@ pub struct HealthCheck {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Task {
+pub struct Service {
     pub id: String,
     pub name: String,
     pub description: Option<String>,
     pub r#type: Option<String>,
+    #[serde(default)]
+    pub group_id: String,
     pub path: String,
     pub work_dir: Option<String>,
     pub args: Option<Vec<String>>,
     pub env: Option<HashMap<String, String>>,
     pub auto_start: bool,
     #[serde(default)]
+    pub startup_delay: u64,
+    #[serde(default)]
     pub dependencies: Vec<String>,
-    pub health_check: Option<HealthCheck>,
+    
+    // 新增配置字段
+    #[serde(default)]
+    pub retry_config: Option<RetryConfig>,
+    #[serde(default)]
+    pub timeout_config: Option<TimeoutConfig>,
+    #[serde(default)]
+    pub log_config: Option<ServiceLogConfig>,
+    #[serde(default)]
+    pub resource_limits: Option<ResourceLimits>,
+    #[serde(default)]
+    pub process_config: Option<ProcessConfig>,
+    #[serde(default)]
+    pub health_check: Option<HealthCheckConfig>,
+    #[serde(default)]
+    pub metrics: Option<ServiceMetrics>,
+    
+    // 保留旧的 health_check 字段以兼容旧配置
+    #[serde(skip_serializing_if = "Option::is_none", alias = "healthCheck")]
+    pub old_health_check: Option<HealthCheck>,
 }
+
+// 保留旧的 Task 结构体作为别名，用于向后兼容
+pub type Task = Service;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Group {
+pub struct ServiceGroup {
     pub id: String,
     pub name: String,
     pub description: Option<String>,
@@ -51,13 +148,16 @@ pub struct Group {
     pub startup_delay: u64,
     #[serde(default)]
     pub application_id: Option<String>,
-    #[serde(rename = "services")]
-    pub tasks: Vec<Task>,
+    #[serde(alias = "tasks")]  // 兼容旧的 tasks 字段
+    pub services: Vec<Service>,
     #[serde(default)]
     pub order: i32,
     #[serde(default)]
     pub dependencies: Vec<String>,
 }
+
+// 保留旧的 Group 结构体作为别名，用于向后兼容
+pub type Group = ServiceGroup;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -88,7 +188,7 @@ fn default_theme() -> String {
 #[serde(rename_all = "camelCase")]
 pub struct Config {
     pub settings: Settings,
-    pub groups: Vec<Group>,
+    pub groups: Vec<ServiceGroup>,
     #[serde(default)]
     pub applications: Vec<Application>,
 }
@@ -103,6 +203,27 @@ impl Default for Config {
             },
             groups: Vec::new(),
             applications: Vec::new(),
+        }
+    }
+}
+
+impl Default for RetryConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            max_retries: 3,
+            retry_delay: 1000,
+            backoff_multiplier: Some(2.0),
+        }
+    }
+}
+
+impl Default for TimeoutConfig {
+    fn default() -> Self {
+        Self {
+            start_timeout: 30000,
+            stop_timeout: 10000,
+            health_check_timeout: 5000,
         }
     }
 }

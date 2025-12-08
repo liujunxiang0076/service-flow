@@ -83,4 +83,10 @@ export const api = {
     }
     return invoke<ServerHealth>("get_server_health")
   },
+
+  // Process Stats
+  getProcessStats: async (taskId: string) => {
+    if (!isTauri()) return null
+    return invoke<any>("get_process_stats", { taskId })
+  },
 }

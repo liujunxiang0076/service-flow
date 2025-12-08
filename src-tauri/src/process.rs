@@ -3,8 +3,10 @@ use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::thread;
 use std::io::{BufRead, BufReader};
+use std::time::{Duration, Instant};
 use thiserror::Error;
-use sysinfo::{Pid, System, SystemExt};
+use sysinfo::{Pid, System, SystemExt, ProcessExt};
+use serde::{Serialize, Deserialize};
 
 #[derive(Error, Debug)]
 pub enum ProcessError {
@@ -26,10 +28,19 @@ impl From<std::io::Error> for ProcessError {
 
 pub type LogCallback = Arc<dyn Fn(&str, &str) + Send + Sync + 'static>;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProcessStats {
+    pub pid: u32,
+    pub cpu_percent: f32,
+    pub memory_bytes: u64,
+    pub memory_percent: f32,
+    pub uptime: u64,  // 秒
+    pub status: String,
+}
+
 pub struct ProcessManager {
     processes: Arc<Mutex<HashMap<String, Child>>>,
     log_callback: LogCallback,
-    #[allow(dead_code)]
     system: Arc<Mutex<System>>,
 }
 
@@ -171,13 +182,72 @@ impl ProcessManager {
         processes.keys().cloned().collect()
     }
     
-    #[allow(dead_code)]
     pub fn get_process_info(&self, pid: u32) -> bool {
         let mut system = self.system.lock().unwrap();
         system.refresh_processes();
         
         // Check if process exists
         system.process(Pid::from(pid as usize)).is_some()
+    }
+    
+    /// 获取进程统计信息
+    pub fn get_process_stats(&self, task_id: &str) -> Option<ProcessStats> {
+        let pid = self.get_pid(task_id)?;
+        let mut system = self.system.lock().unwrap();
+        system.refresh_processes();
+        
+        let process = system.process(Pid::from(pid as usize))?;
+        
+        Some(ProcessStats {
+            pid,
+            cpu_percent: process.cpu_usage(),
+            memory_bytes: process.memory(),
+            memory_percent: (process.memory() as f32 / system.total_memory() as f32) * 100.0,
+            uptime: process.run_time(),
+            status: format!("{:?}", process.status()),
+        })
+    }
+    
+    /// 优雅关闭进程
+    pub fn graceful_shutdown(&self, task_id: &str, timeout: Duration) -> Result<(), ProcessError> {
+        let mut processes = self.processes.lock().unwrap();
+        
+        if let Some(mut child) = processes.remove(task_id) {
+            // Windows 没有 SIGTERM，直接使用 kill
+            // 在 Unix 系统上可以先尝试 SIGTERM
+            #[cfg(unix)]
+            {
+                use nix::sys::signal::{self, Signal};
+                use nix::unistd::Pid;
+                let pid = Pid::from_raw(child.id() as i32);
+                signal::kill(pid, Signal::SIGTERM).ok();
+            }
+            
+            #[cfg(windows)]
+            {
+                child.kill().ok();
+            }
+            
+            // 等待进程退出，带超时
+            let start = Instant::now();
+            loop {
+                match child.try_wait() {
+                    Ok(Some(_)) => return Ok(()),  // 进程已退出
+                    Ok(None) => {
+                        if start.elapsed() > timeout {
+                            // 超时，强制 kill
+                            child.kill()?;
+                            child.wait()?;
+                            return Ok(());
+                        }
+                        thread::sleep(Duration::from_millis(100));
+                    }
+                    Err(e) => return Err(ProcessError::KillError(e.to_string())),
+                }
+            }
+        } else {
+            Err(ProcessError::NotFound)
+        }
     }
 }
 
