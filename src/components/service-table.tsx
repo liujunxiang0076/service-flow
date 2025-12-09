@@ -75,11 +75,11 @@ export function ServiceTable({
 
     if (isToday) {
       if (diffMins < 1) return "刚刚"
-      if (diffMins < 2) return "一分钟前"
+      if (diffMins < 2) return "1分钟前"
       if (diffMins <= 30) return `${diffMins}分钟前`
       if (diffMins <= 60) return "半小时前"
       
-      if (diffHours >= 1 && diffHours < 12) return "一小时前" 
+      if (diffHours >= 1 && diffHours < 12) return "1小时前" 
       
       if (diffHours < 12) {
          const hour = start.getHours()

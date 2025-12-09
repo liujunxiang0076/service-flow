@@ -94,7 +94,8 @@ export function useConfig() {
                   groupId: group.id, // Add groupId to each service
                   status: (isRunning ? 'running' : 'stopped') as 'running' | 'stopped', // Get actual status
                   healthStatus: service.healthStatus || 'unconfigured', // Default health status
-                  pid: pid || service.pid, // Add PID
+                  // Fix: 只有在运行状态下才显示 PID，避免显示上次残留的 PID
+                  pid: isRunning ? (pid || service.pid) : undefined,
                   startedAt, // Add start time
                 }
               })

@@ -414,20 +414,49 @@ pub fn get_pid_port(pid: u32) -> Result<Option<u16>, String> {
             return Ok(Some(port));
         }
 
-        // 3. 如果主进程没找到，尝试查找子进程（例如 Nginx Worker）
-        // 使用 wmic 查找子进程: wmic process where (ParentProcessId=PID) get ProcessId
+        // 3. 如果主进程没找到，递归查找所有后代进程
+        // 使用 wmic 查找所有进程的 ParentProcessId，构建进程树
         let wmic_output = Command::new("wmic")
-            .args(&["process", "where", &format!("ParentProcessId={}", pid), "get", "ProcessId"])
+            .args(&["process", "get", "ProcessId,ParentProcessId"])
             .output();
             
         if let Ok(output) = wmic_output {
             let output_str = String::from_utf8_lossy(&output.stdout);
-            // wmic 输出包含表头，我们需要跳过非数字行
-            for line in output_str.lines() {
-                if let Ok(child_pid) = line.trim().parse::<u32>() {
-                    // 找到子进程，检查端口
-                    if let Some(port) = find_port_for_pid(child_pid) {
+            let mut parent_map: std::collections::HashMap<u32, Vec<u32>> = std::collections::HashMap::new();
+            
+            // 解析 wmic 输出，构建父子关系映射
+            // Format: ParentProcessId  ProcessId
+            for line in output_str.lines().skip(1) { // Skip header
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() >= 2 {
+                    if let (Ok(parent), Ok(child)) = (parts[0].parse::<u32>(), parts[1].parse::<u32>()) {
+                        parent_map.entry(parent).or_insert_with(Vec::new).push(child);
+                    }
+                }
+            }
+            
+            // 广度优先搜索 (BFS) 查找所有后代
+            let mut queue = std::collections::VecDeque::new();
+            queue.push_back(pid);
+            
+            // 防止死循环（虽然进程树不应该有环）
+            let mut visited = std::collections::HashSet::new();
+            visited.insert(pid);
+
+            while let Some(current_pid) = queue.pop_front() {
+                // 检查当前进程的端口 (跳过主进程，因为已经查过了，但也无妨)
+                if current_pid != pid {
+                    if let Some(port) = find_port_for_pid(current_pid) {
                         return Ok(Some(port));
+                    }
+                }
+
+                // 将子进程加入队列
+                if let Some(children) = parent_map.get(&current_pid) {
+                    for &child in children {
+                        if visited.insert(child) {
+                            queue.push_back(child);
+                        }
                     }
                 }
             }
