@@ -197,26 +197,82 @@ export function ServiceDialog({
 
   const handleSelectFile = async () => {
     const tauri = typeof window !== "undefined" ? (window as any).__TAURI__ : undefined
+    
+    // 根据服务类型设置文件筛选器
+    let fileFilters = []
+    if (serviceType === "batch") {
+      fileFilters = [{ name: "批处理文件", extensions: ["bat"] }]
+    } else if (serviceType === "shell") {
+      fileFilters = [{ name: "Shell脚本", extensions: ["sh"] }]
+    } else if (serviceType === "python") {
+      fileFilters = [{ name: "Python文件", extensions: ["py"] }]
+    } else if (serviceType === "nodejs") {
+      fileFilters = [{ name: "JavaScript文件", extensions: ["js", "mjs"] }]
+    } else {
+      fileFilters = [{ name: "所有文件", extensions: ["*"] }]
+    }
 
     if (tauri?.dialog?.open) {
       const selected = await tauri.dialog.open({
         title: "选择可执行文件",
+        directory: false, // 明确指定选择文件
         multiple: false,
+        filters: fileFilters
       })
       if (typeof selected === "string") {
         setFormData({ ...formData, path: selected })
       }
     } else {
-      const input = document.createElement("input")
-      input.type = "file"
-      input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0]
-        if (file) {
-          // 浏览器环境无法获取绝对路径，只显示文件名
-          setFormData({ ...formData, path: file.name })
+      // 尝试使用现代浏览器的showOpenFilePicker API
+      if (typeof window !== "undefined" && (window as any).showOpenFilePicker) {
+        try {
+          const [fileHandle] = await (window as any).showOpenFilePicker({
+            multiple: false,
+            types: [
+              {
+                description: serviceType === "batch" ? "批处理文件" : 
+                            serviceType === "shell" ? "Shell脚本" : 
+                            serviceType === "python" ? "Python文件" : 
+                            serviceType === "nodejs" ? "JavaScript文件" : "所有文件",
+                accept: {
+                  '*/*': serviceType === "batch" ? ['.bat'] :
+                         serviceType === "shell" ? ['.sh'] :
+                         serviceType === "python" ? ['.py'] :
+                         serviceType === "nodejs" ? ['.js', '.mjs'] :
+                         ['.exe', '.bat', '.sh', '.py', '.js', '.jar']
+                }
+              }
+            ]
+          })
+          // 浏览器环境出于安全考虑无法获取完整路径，只显示文件名
+          setFormData({ ...formData, path: fileHandle.name })
+        } catch (error) {
+          // 用户取消选择或发生错误
+          console.log("文件选择取消或失败:", error)
         }
+      } else {
+        // 降级方案：使用传统的input[type=file]方式
+        const input = document.createElement("input")
+        input.type = "file"
+        // 设置文件类型过滤器
+        if (serviceType === "batch") {
+          input.accept = ".bat"
+        } else if (serviceType === "shell") {
+          input.accept = ".sh"
+        } else if (serviceType === "python") {
+          input.accept = ".py"
+        } else if (serviceType === "nodejs") {
+          input.accept = ".js,.mjs"
+        }
+        input.onchange = (e) => {
+          const file = (e.target as HTMLInputElement).files?.[0]
+          if (file) {
+            // 浏览器环境无法获取绝对路径，只显示文件名
+            setFormData({ ...formData, path: file.name })
+          }
+        }
+        input.click()
       }
-      input.click()
     }
   }
 
@@ -233,18 +289,35 @@ export function ServiceDialog({
         setFormData({ ...formData, workDir: selected })
       }
     } else {
-      const input = document.createElement("input")
-      input.type = "file"
-      input.setAttribute("webkitdirectory", "")
-      input.setAttribute("directory", "")
-      input.onchange = (e) => {
-        const files = (e.target as HTMLInputElement).files
-        if (files && files.length > 0) {
-          const path = files[0].webkitRelativePath.split("/")[0]
-          setFormData({ ...formData, workDir: path })
+      // 尝试使用现代浏览器的showDirectoryPicker API
+      if (typeof window !== "undefined" && (window as any).showDirectoryPicker) {
+        try {
+          const directoryHandle = await (window as any).showDirectoryPicker({
+            mode: 'read'
+          })
+          // 注意：showDirectoryPicker API出于安全考虑，不直接返回完整路径
+          // 我们将使用虚拟路径表示，实际使用时需要结合文件系统访问API
+          setFormData({ ...formData, workDir: directoryHandle.name })
+        } catch (error) {
+          // 用户取消选择或发生错误
+          console.log("文件夹选择取消或失败:", error)
         }
+      } else {
+        // 降级方案：使用传统的input[type=file]方式
+        const input = document.createElement("input")
+        input.type = "file"
+        input.setAttribute("webkitdirectory", "")
+        input.setAttribute("directory", "")
+        input.onchange = (e) => {
+          const files = (e.target as HTMLInputElement).files
+          if (files && files.length > 0) {
+            // 在浏览器中无法获取完整路径，显示选中的文件夹名
+            const path = files[0].webkitRelativePath.split("/")[0]
+            setFormData({ ...formData, workDir: path })
+          }
+        }
+        input.click()
       }
-      input.click()
     }
   }
 
