@@ -77,52 +77,55 @@ export function ServiceTable({
   }
 
   const getServicePort = (service: Service): string | null => {
-    // 从健康检查配置中获取端口
-    if (service.healthCheck) {
-      const healthCheck = service.healthCheck as any
-      console.log(`[getServicePort] ${service.id} healthCheck:`, healthCheck)
-      
-      // 直接从 healthCheck 对象获取 port（旧格式）
-      if (healthCheck.port) {
-        console.log(`[getServicePort] ${service.id} found port:`, healthCheck.port)
-        return healthCheck.port.toString()
+    if (!service.healthCheck) {
+      console.log(`[getServicePort] ${service.id}: no healthCheck`)
+      return null
+    }
+
+    const healthCheck = service.healthCheck as any
+    console.log(`[getServicePort] ${service.id}:`, healthCheck)
+    
+    // 旧格式：直接有 port 或 url 字段
+    if (healthCheck.port) {
+      console.log(`[getServicePort] ${service.id} found port:`, healthCheck.port)
+      return healthCheck.port.toString()
+    }
+    
+    if (healthCheck.url) {
+      try {
+        const url = new URL(healthCheck.url)
+        if (url.port) {
+          console.log(`[getServicePort] ${service.id} extracted port from URL:`, url.port)
+          return url.port
+        }
+        // 默认端口
+        if (url.protocol === 'http:') return '80'
+        if (url.protocol === 'https:') return '443'
+      } catch (e) {
+        console.error(`[getServicePort] ${service.id} URL parse error:`, e)
       }
-      
-      // 从 URL 中提取端口（旧格式）
-      if (healthCheck.url) {
+    }
+    
+    // 新格式：从 config 对象获取
+    if (healthCheck.config) {
+      const config = healthCheck.config
+      if (config.port) {
+        console.log(`[getServicePort] ${service.id} found port in config:`, config.port)
+        return config.port.toString()
+      }
+      if (config.url) {
         try {
-          const url = new URL(healthCheck.url)
-          if (url.port) {
-            console.log(`[getServicePort] ${service.id} extracted port from URL:`, url.port)
-            return url.port
-          }
-          // 默认端口
+          const url = new URL(config.url)
+          if (url.port) return url.port
           if (url.protocol === 'http:') return '80'
           if (url.protocol === 'https:') return '443'
         } catch (e) {
-          console.error(`[getServicePort] ${service.id} URL parse error:`, e)
+          // Ignore parse errors
         }
       }
-      
-      // 从 config 对象获取（新格式）
-      if (healthCheck.config) {
-        const config = healthCheck.config
-        if (config.port) return config.port.toString()
-        if (config.url) {
-          try {
-            const url = new URL(config.url)
-            if (url.port) return url.port
-            if (url.protocol === 'http:') return '80'
-            if (url.protocol === 'https:') return '443'
-          } catch (e) {
-            // Ignore parse errors
-          }
-        }
-      }
-    } else {
-      console.log(`[getServicePort] ${service.id} no healthCheck`)
     }
     
+    console.log(`[getServicePort] ${service.id}: no port found`)
     return null
   }
 
@@ -263,23 +266,28 @@ export function ServiceTable({
                 </TableCell>
 
                 <TableCell>
-                  {getServicePort(service) ? (
-                    <span className="font-mono text-sm">{getServicePort(service)}</span>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
+                  {(() => {
+                    const port = getServicePort(service)
+                    return port ? (
+                      <span className="font-mono text-sm">{port}</span>
+                    ) : (
+                      <span className="text-muted-foreground" title={JSON.stringify(service.healthCheck)}>-</span>
+                    )
+                  })()}
                 </TableCell>
 
                 <TableCell>
                   {service.pid ? (
                     <span className="font-mono text-sm">{service.pid}</span>
                   ) : (
-                    <span className="text-muted-foreground">-</span>
+                    <span className="text-muted-foreground" title={`PID: ${service.pid}`}>-</span>
                   )}
                 </TableCell>
 
                 <TableCell>
-                  <span className="text-sm">{formatStartTime(service.startedAt)}</span>
+                  <span className="text-sm" title={service.startedAt ? service.startedAt.toString() : 'No startedAt'}>
+                    {formatStartTime(service.startedAt)}
+                  </span>
                 </TableCell>
 
                 <TableCell>

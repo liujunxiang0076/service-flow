@@ -123,6 +123,14 @@ pub struct HealthCheck {
     pub timeout: u64,
 }
 
+// 统一的健康检查配置，支持新旧两种格式
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum HealthCheckUnion {
+    New(HealthCheckConfig),
+    Old(HealthCheck),
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Service {
@@ -156,13 +164,9 @@ pub struct Service {
     #[serde(default)]
     pub process_config: Option<ProcessConfig>,
     #[serde(default)]
-    pub health_check: Option<HealthCheckConfig>,
+    pub health_check: Option<HealthCheckUnion>,
     #[serde(default)]
     pub metrics: Option<ServiceMetrics>,
-    
-    // 保留旧的 health_check 字段以兼容旧配置
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub old_health_check: Option<HealthCheck>,
     
     // 运行时信息
     #[serde(default)]

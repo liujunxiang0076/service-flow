@@ -36,11 +36,37 @@ export function useConfig() {
               group.services.map(async (service) => {
                 // Check if service is actually running
                 const isRunning = await api.isTaskRunning(service.id)
+                
+                // Get PID if running
+                let pid: number | undefined
+                if (isRunning) {
+                  pid = await api.getTaskPid(service.id)
+                  console.log(`[fetchConfig] Service ${service.id}: isRunning=${isRunning}, pid=${pid}`)
+                }
+                
+                // Determine start time - keep existing startedAt if service is running
+                let startedAt: Date | undefined = service.startedAt
+                if (service.startedAt) {
+                  // 保留已有的启动时间
+                  if (typeof service.startedAt === 'string') {
+                    startedAt = new Date(service.startedAt)
+                  }
+                  console.log(`[fetchConfig] Service ${service.id}: startedAt=${startedAt}`)
+                } else if (!isRunning) {
+                  // 如果服务已停止，清除启动时间
+                  startedAt = undefined
+                }
+                // 注意：不在这里设置新的启动时间，应该由后端在启动时设置
+                
+                console.log(`[fetchConfig] Service ${service.id}: healthCheck=`, service.healthCheck)
+                
                 return {
                   ...service,
                   groupId: group.id, // Add groupId to each service
                   status: (isRunning ? 'running' : 'stopped') as 'running' | 'stopped', // Get actual status
                   healthStatus: service.healthStatus || 'unconfigured', // Default health status
+                  pid: pid || service.pid, // Add PID
+                  startedAt, // Add start time
                 }
               })
             ),
@@ -398,6 +424,9 @@ export function useConfig() {
   const startService = useCallback(
     async (serviceId: string) => {
       try {
+        // 记录启动时间
+        const startTime = new Date()
+        
         await api.startTask(serviceId)
         toast({
           title: "服务启动中",
@@ -406,9 +435,29 @@ export function useConfig() {
         
         // Wait a bit for the service to start, then check status
         setTimeout(async () => {
-          await fetchConfig(true)
           const isRunning = await api.isTaskRunning(serviceId)
+          
           if (isRunning) {
+            // 更新配置，设置启动时间
+            if (config) {
+              const updatedConfig = {
+                ...config,
+                groups: config.groups.map(group => ({
+                  ...group,
+                  services: group.services.map(service => 
+                    service.id === serviceId 
+                      ? { ...service, startedAt: startTime }
+                      : service
+                  )
+                }))
+              }
+              setConfig(updatedConfig)
+              cachedConfig = updatedConfig
+              
+              // 保存到后端
+              await api.saveConfig(updatedConfig)
+            }
+            
             toast({
               title: "服务已启动",
               description: "服务启动成功",
@@ -420,6 +469,8 @@ export function useConfig() {
               variant: "destructive",
             })
           }
+          
+          await fetchConfig(true)
         }, 1500)
         
         return true
@@ -433,7 +484,7 @@ export function useConfig() {
         return false
       }
     },
-    [fetchConfig],
+    [fetchConfig, config],
   )
 
   const stopService = useCallback(
@@ -447,9 +498,29 @@ export function useConfig() {
         
         // Wait a bit for the service to stop, then check status
         setTimeout(async () => {
-          await fetchConfig(true)
           const isRunning = await api.isTaskRunning(serviceId)
+          
           if (!isRunning) {
+            // 更新配置，清除启动时间和 PID
+            if (config) {
+              const updatedConfig = {
+                ...config,
+                groups: config.groups.map(group => ({
+                  ...group,
+                  services: group.services.map(service => 
+                    service.id === serviceId 
+                      ? { ...service, startedAt: undefined, pid: undefined }
+                      : service
+                  )
+                }))
+              }
+              setConfig(updatedConfig)
+              cachedConfig = updatedConfig
+              
+              // 保存到后端
+              await api.saveConfig(updatedConfig)
+            }
+            
             toast({
               title: "服务已停止",
               description: "服务停止成功",
@@ -461,6 +532,8 @@ export function useConfig() {
               variant: "destructive",
             })
           }
+          
+          await fetchConfig(true)
         }, 1000)
         
         return true
@@ -474,7 +547,7 @@ export function useConfig() {
         return false
       }
     },
-    [fetchConfig],
+    [fetchConfig, config],
   )
 
   const restartService = useCallback(

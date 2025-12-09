@@ -87,6 +87,16 @@ export interface HealthCheckConfig {
   startPeriod?: number // 启动后多久开始检查（给服务预热时间，毫秒）
 }
 
+// 旧的健康检查格式（向后兼容）
+export interface OldHealthCheck {
+  type: string
+  host?: string
+  port?: number
+  url?: string
+  interval: number
+  timeout: number
+}
+
 export interface Service {
   id: string
   name: string
@@ -113,7 +123,7 @@ export interface Service {
   logConfig?: ServiceLogConfig
   resourceLimits?: ResourceLimits
   processConfig?: ProcessConfig
-  healthCheck?: HealthCheckConfig
+  healthCheck?: HealthCheckConfig | OldHealthCheck // 支持新旧两种格式
   metrics?: ServiceMetrics
   
   // 运行时信息

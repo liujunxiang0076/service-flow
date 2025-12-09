@@ -1,7 +1,7 @@
 {
   "settings": {
     "serverPort": 8899,
-    "autoStart": true
+    "autoStart": false
   },
   "groups": [
     {

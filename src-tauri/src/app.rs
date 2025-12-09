@@ -106,7 +106,13 @@ impl App {
         
         // 初始化配置
         let config_path = app_data_dir.join("config.json");
-        let config_manager = config::ConfigManager::new(config_path.to_str().unwrap()).unwrap();
+        log::info!("Loading config from: {}", config_path.display());
+        let config_manager = config::ConfigManager::new(config_path.to_str().unwrap())
+            .map_err(|e| {
+                log::error!("Failed to load config from {}: {}", config_path.display(), e);
+                e
+            })
+            .unwrap();
         *self.config.lock().unwrap() = Some(config_manager);
         
         // 初始化数据库
@@ -128,23 +134,8 @@ impl App {
             }
         });
         
-        // 加载配置
-        let config = self.config.lock().unwrap();
-        let config = config.as_ref().unwrap();
-        
-        // 启动自动启动的任务
-        if config.get().settings.auto_start {
-            if let Err(e) = self.orchestrator.start_all(config.get()) {
-                log::error!("Failed to start all tasks: {}", e);
-            }
-        }
-        
-        // 启动健康检查
-        for group in &config.get().groups {
-            for task in &group.services {
-                self.health_checker.start_checking(task);
-            }
-        }
+        // 注意：健康检查和自动启动已禁用，避免启动时阻塞
+        // 用户可以在界面加载后手动启动服务
         
         info!("ServiceFlow started successfully");
     }

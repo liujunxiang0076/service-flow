@@ -5,7 +5,7 @@ use tokio::time::sleep;
 use tokio::spawn;
 use reqwest::blocking::Client;
 use std::net::TcpStream;
-use crate::config::Task;
+use crate::config::{Task, HealthCheckUnion, HealthCheck};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CheckResult {
@@ -16,6 +16,7 @@ pub struct CheckResult {
 
 pub type HealthCheckCallback = Arc<dyn Fn(CheckResult) + Send + Sync + 'static>;
 
+#[derive(Clone)]
 pub struct HealthChecker {
     checks: Arc<Mutex<HashMap<String, tokio::task::JoinHandle<()>>>>,
     callback: HealthCheckCallback,
@@ -32,9 +33,19 @@ impl HealthChecker {
     }
     
     pub fn start_checking(&self, task: &Task) {
-        if let Some(health_check) = &task.old_health_check {
+        // 从 HealthCheckUnion 中提取旧格式的 HealthCheck
+        let health_check = match &task.health_check {
+            Some(HealthCheckUnion::Old(hc)) => Some(hc.clone()),
+            Some(HealthCheckUnion::New(_)) => {
+                // 新格式暂不支持，跳过
+                log::warn!("New health check format not yet supported for task: {}", task.id);
+                None
+            }
+            None => None,
+        };
+        
+        if let Some(health_check) = health_check {
             let task_id = task.id.clone();
-            let health_check = health_check.clone();
             let callback = self.callback.clone();
             let http_client = self.http_client.clone();
             let task_id_for_handle = task.id.clone();
@@ -75,7 +86,7 @@ impl HealthChecker {
         self.start_checking(task);
     }
     
-    fn check(health_check: &crate::config::HealthCheck, http_client: &Client) -> (bool, String) {
+    fn check(health_check: &HealthCheck, http_client: &Client) -> (bool, String) {
         match health_check.r#type.as_str() {
             "tcp" => Self::check_tcp(health_check),
             "http" => Self::check_http(health_check, http_client),
@@ -83,7 +94,7 @@ impl HealthChecker {
         }
     }
     
-    fn check_tcp(health_check: &crate::config::HealthCheck) -> (bool, String) {
+    fn check_tcp(health_check: &HealthCheck) -> (bool, String) {
         let host = health_check.host.as_ref().map(|s| s.as_str()).unwrap_or("localhost");
         let port = health_check.port.unwrap_or(0);
         
@@ -97,7 +108,7 @@ impl HealthChecker {
         }
     }
     
-    fn check_http(health_check: &crate::config::HealthCheck, http_client: &Client) -> (bool, String) {
+    fn check_http(health_check: &HealthCheck, http_client: &Client) -> (bool, String) {
         let url = match &health_check.url {
             Some(url) => url,
             None => return (false, "HTTP URL not specified".to_string()),

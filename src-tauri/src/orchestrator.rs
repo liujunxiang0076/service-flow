@@ -25,6 +25,7 @@ pub enum OrchestratorError {
     ConflictingService(String, String),
 }
 
+#[derive(Clone)]
 pub struct Orchestrator {
     pm: Arc<ProcessManager>,
     config: Arc<Mutex<Option<Config>>>,
