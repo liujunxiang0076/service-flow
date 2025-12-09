@@ -58,8 +58,15 @@ export function useConfig() {
                           timeout: 5
                         } as any
                       } else {
-                        // 兼容不同格式
+                        // 兼容不同格式，并确保必需字段存在
                         const hc = service.healthCheck as any
+                        
+                        // 补全缺失的必需字段
+                        if (hc.interval === undefined) hc.interval = 10
+                        if (hc.timeout === undefined) hc.timeout = 5
+                        if (hc.type === undefined) hc.type = 'tcp'
+                        if (hc.host === undefined) hc.host = 'localhost'
+
                         if (hc.config) {
                           hc.config.port = port
                         } else {
