@@ -363,3 +363,39 @@ pub fn stop_all_tasks(app: State<App>) -> Result<(), String> {
     
     Ok(())
 }
+
+#[tauri::command]
+pub fn get_pid_port(pid: u32) -> Result<Option<u16>, String> {
+    use std::process::Command;
+    
+    // Windows implementation using netstat
+    #[cfg(target_os = "windows")]
+    {
+        let output = Command::new("netstat")
+            .args(&["-ano"])
+            .output()
+            .map_err(|e| e.to_string())?;
+            
+        let output_str = String::from_utf8_lossy(&output.stdout);
+        
+        // Find line containing PID
+        // Format: TCP    0.0.0.0:6379           0.0.0.0:0              LISTENING       17232
+        for line in output_str.lines() {
+            if line.trim().ends_with(&pid.to_string()) && line.contains("LISTENING") && line.contains("TCP") {
+                // Extract port
+                // Split by whitespace
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() >= 2 {
+                    let local_address = parts[1]; // 0.0.0.0:6379 or [::]:6379
+                    if let Some(colon_idx) = local_address.rfind(':') {
+                        if let Ok(port) = local_address[colon_idx + 1..].parse::<u16>() {
+                            return Ok(Some(port));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    Ok(None)
+}

@@ -64,6 +64,10 @@ export const api = {
     if (!isTauri()) return 0
     return invoke<number>("get_task_pid", { taskId })
   },
+  getTaskPort: async (pid: number) => {
+    if (!isTauri()) return null
+    return invoke<number | null>("get_pid_port", { pid })
+  },
   
   // Health Check
   getHealthCheckResult: async (taskId: string) => {

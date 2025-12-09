@@ -42,6 +42,26 @@ export function useConfig() {
                 if (isRunning) {
                   pid = await api.getTaskPid(service.id)
                   console.log(`[fetchConfig] Service ${service.id}: isRunning=${isRunning}, pid=${pid}`)
+                  
+                  // 如果有 PID，尝试获取端口
+                  if (pid) {
+                    const port = await api.getTaskPort(pid)
+                    if (port) {
+                      console.log(`[fetchConfig] Service ${service.id}: found port ${port} via netstat`)
+                      // 动态更新 healthCheck 中的端口，以便 UI 显示
+                      if (!service.healthCheck) {
+                        service.healthCheck = { type: 'tcp', port: port, host: 'localhost' } as any
+                      } else {
+                        // 兼容不同格式
+                        const hc = service.healthCheck as any
+                        if (hc.config) {
+                          hc.config.port = port
+                        } else {
+                          hc.port = port
+                        }
+                      }
+                    }
+                  }
                 }
                 
                 // Determine start time
