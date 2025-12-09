@@ -291,7 +291,9 @@ impl ConfigManager {
     
     pub fn load(path: &str) -> Result<Config, ConfigError> {
         if !Path::new(path).exists() {
-            // 如果配置文件不存在，返回默认配置
+            // 如果配置文件不存在，返回空的默认配置
+            // 用户需要自己创建服务和配置
+            log::info!("Config file not found at {}, using empty default configuration", path);
             return Ok(Config::default());
         }
         
@@ -301,8 +303,14 @@ impl ConfigManager {
     }
     
     pub fn save(&self) -> Result<(), ConfigError> {
+        // 确保目标目录存在
+        if let Some(parent) = Path::new(&self.path).parent() {
+            fs::create_dir_all(parent)?;
+        }
+        
         let content = serde_json::to_string_pretty(&self.config)?;
         fs::write(&self.path, content)?;
+        log::info!("Config saved successfully to: {}", self.path);
         Ok(())
     }
     

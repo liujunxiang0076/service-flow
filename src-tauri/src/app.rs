@@ -151,6 +151,7 @@ pub fn get_config(app: State<App>) -> Option<Config> {
 
 #[tauri::command]
 pub fn save_config(app: State<App>, cfg: Config) -> Result<(), String> {
+    log::info!("Received config to save. Groups: {}, Applications: {}", cfg.groups.len(), cfg.applications.len());
     let mut config = app.config.lock().unwrap();
     if let Some(manager) = config.as_mut() {
         manager.set(cfg);

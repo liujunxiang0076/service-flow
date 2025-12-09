@@ -96,6 +96,7 @@ export function useConfig() {
   const saveConfig = useCallback(
     async (newConfig: Config) => {
       try {
+        console.log("Saving config to backend:", JSON.stringify(newConfig, null, 2))
         await api.saveConfig(newConfig)
         cachedConfig = newConfig
         setConfig(newConfig)
@@ -325,23 +326,40 @@ export function useConfig() {
     async (serviceData: any) => {
       if (!config) return false
 
-      const groupId = serviceData.groupId
+      const groupId = serviceData.groupId || "default-group"
       const newService = {
         ...serviceData,
         id: `service-${Date.now()}`,
+        groupId: groupId, // 确保服务有 groupId
         status: "stopped",
         healthStatus: "unconfigured",
       }
 
-      const newGroups = config.groups.map((group) => {
-        if (group.id === groupId) {
-          return {
-            ...group,
-            services: [...group.services, newService],
+      let newGroups = [...config.groups]
+      const groupExists = newGroups.some(g => g.id === groupId)
+
+      if (groupExists) {
+        newGroups = newGroups.map((group) => {
+          if (group.id === groupId) {
+            return {
+              ...group,
+              services: [...group.services, newService],
+            }
           }
-        }
-        return group
-      })
+          return group
+        })
+      } else {
+        // 如果分组不存在，创建一个新分组
+        newGroups.push({
+          id: groupId,
+          name: groupId === "default-group" ? "默认分组" : "新分组",
+          startupDelay: 0,
+          services: [newService],
+          dependencies: [],
+          applicationId: undefined,
+          order: newGroups.length
+        })
+      }
 
       const newConfig = {
         ...config,
