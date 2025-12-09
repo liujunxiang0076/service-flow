@@ -434,6 +434,7 @@ export function useConfig() {
         })
         
         // Wait a bit for the service to start, then check status
+        // 增加延迟时间，给服务更多启动时间
         setTimeout(async () => {
           const isRunning = await api.isTaskRunning(serviceId)
           

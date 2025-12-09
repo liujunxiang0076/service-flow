@@ -8,15 +8,19 @@
       "id": "program1-group",
       "name": "程序1依赖服务组",
       "delay": 0,
-      "tasks": [
+      "services": [
         {
           "id": "redis",
           "name": "Redis",
           "type": "cmd",
+          "groupId": "program1-group",
           "path": "D:\\Environment\\Redis-x64-3.0.504\\redis-server.exe",
           "workDir": "D:\\Environment\\Redis-x64-3.0.504\\",
           "args": ["redis.windows.conf"],
+          "status": "stopped",
+          "healthStatus": "unknown",
           "autoStart": false,
+          "startupDelay": 0,
           "dependencies": [],
           "healthCheck": {
             "type": "tcp",
@@ -30,10 +34,14 @@
           "id": "tomcat",
           "name": "Tomcat",
           "type": "cmd",
+          "groupId": "program1-group",
           "path": "D:\\Tomcat\\bin\\startup.bat",
           "workDir": "D:\\Tomcat\\bin\\",
           "args": [],
-          "autoStart": true,
+          "status": "stopped",
+          "healthStatus": "unknown",
+          "autoStart": false,
+          "startupDelay": 0,
           "dependencies": ["redis"],
           "healthCheck": {
             "type": "http",
@@ -46,10 +54,14 @@
           "id": "nginx",
           "name": "Nginx",
           "type": "cmd",
+          "groupId": "program1-group",
           "path": "D:\\Nginx\\nginx.exe",
           "workDir": "D:\\Nginx\\",
           "args": [],
-          "autoStart": true,
+          "status": "stopped",
+          "healthStatus": "unknown",
+          "autoStart": false,
+          "startupDelay": 0,
           "dependencies": ["tomcat"],
           "healthCheck": {
             "type": "http",
@@ -64,15 +76,19 @@
       "id": "program2-group",
       "name": "程序2服务组",
       "delay": 5000,
-      "tasks": [
+      "services": [
         {
           "id": "program2",
           "name": "程序2",
           "type": "cmd",
+          "groupId": "program2-group",
           "path": "D:\\Program2\\start.bat",
           "workDir": "D:\\Program2\\",
           "args": [],
-          "autoStart": true
+          "status": "stopped",
+          "healthStatus": "unknown",
+          "autoStart": false,
+          "startupDelay": 0
         }
       ]
     },
@@ -80,15 +96,19 @@
       "id": "test-group",
       "name": "测试服务组",
       "delay": 0,
-      "tasks": [
+      "services": [
         {
           "id": "ping-test",
           "name": "Ping Test (日志测试)",
           "type": "cmd",
+          "groupId": "test-group",
           "path": "E:\\code\\Project\\service-flow\\test-ping.bat",
           "workDir": "E:\\code\\Project\\service-flow\\",
           "args": [],
-          "autoStart": false
+          "status": "stopped",
+          "healthStatus": "unknown",
+          "autoStart": false,
+          "startupDelay": 0
         }
       ]
     }
