@@ -10,6 +10,7 @@ import {
   FolderTree,
   PanelLeftClose,
   PanelLeftOpen,
+  GalleryVerticalEnd,
 } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 import { cn } from "@/lib/utils"
@@ -42,7 +43,7 @@ export function AppSidebar() {
       >
         {/* Header / Logo */}
         <div className={cn("flex h-16 items-center border-b border-sidebar-border transition-all duration-300", collapsed ? "justify-center px-2" : "justify-start px-4")}>
-          <Server className="h-6 w-6 shrink-0 text-primary" />
+          <GalleryVerticalEnd className="h-6 w-6 shrink-0 text-primary" />
           <span 
             className={cn(
               "text-lg font-semibold text-sidebar-foreground truncate transition-all duration-300 overflow-hidden", 
