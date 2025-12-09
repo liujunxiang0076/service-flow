@@ -44,19 +44,15 @@ export function useConfig() {
                   console.log(`[fetchConfig] Service ${service.id}: isRunning=${isRunning}, pid=${pid}`)
                 }
                 
-                // Determine start time - keep existing startedAt if service is running
-                let startedAt: Date | undefined = service.startedAt
+                // Determine start time
+                let startedAt: Date | undefined = undefined
                 if (service.startedAt) {
-                  // 保留已有的启动时间
-                  if (typeof service.startedAt === 'string') {
-                    startedAt = new Date(service.startedAt)
-                  }
-                  console.log(`[fetchConfig] Service ${service.id}: startedAt=${startedAt}`)
-                } else if (!isRunning) {
-                  // 如果服务已停止，清除启动时间
-                  startedAt = undefined
+                  // 从后端获取的配置中保留启动时间（可能是字符串）
+                  startedAt = new Date(service.startedAt)
                 }
-                // 注意：不在这里设置新的启动时间，应该由后端在启动时设置
+                
+                // 如果正在运行且没有记录时间（这种情况很少见，除非是手动在外部启动的）
+                // 我们就不处理了，或者可以设为当前时间？暂且保留原样
                 
                 console.log(`[fetchConfig] Service ${service.id}: healthCheck=`, service.healthCheck)
                 

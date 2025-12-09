@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import type { Service, ServiceGroup, Application } from "@/types/service"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -37,6 +38,17 @@ export function ServiceTable({
   onEdit,
   onDelete,
 }: ServiceTableProps) {
+  // 强制重新渲染以更新相对时间
+  const [, setTick] = useState(0)
+
+  useEffect(() => {
+    // 每分钟更新一次时间显示
+    const timer = setInterval(() => {
+      setTick(t => t + 1)
+    }, 60000)
+    return () => clearInterval(timer)
+  }, [])
+
   const getGroupName = (groupId: string) => {
     return groups.find((g) => g.id === groupId)?.name || "未知分组"
   }
@@ -52,28 +64,63 @@ export function ServiceTable({
     
     const now = new Date()
     const start = new Date(startedAt)
+    const diffMs = now.getTime() - start.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMins / 60)
     
-    // 检查是否是今天
+    // 1. 当天内的时间显示规则
     const isToday = now.getFullYear() === start.getFullYear() &&
                     now.getMonth() === start.getMonth() &&
                     now.getDate() === start.getDate()
-    
+
     if (isToday) {
-      // 今天只显示时间 HH:mm
-      return start.toLocaleTimeString('zh-CN', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: false 
-      })
-    } else {
-      // 非今天显示日期+时间 YY-MM-DD HH:mm
-      const year = start.getFullYear().toString().slice(-2)
+      if (diffMins < 1) return "刚刚"
+      if (diffMins < 2) return "一分钟前"
+      if (diffMins <= 30) return `${diffMins}分钟前`
+      if (diffMins <= 60) return "半小时前"
+      
+      if (diffHours >= 1 && diffHours < 12) return "一小时前" 
+      
+      if (diffHours < 12) {
+         const hour = start.getHours()
+         const minute = start.getMinutes().toString().padStart(2, '0')
+         const timeStr = `${hour.toString().padStart(2, '0')}:${minute}`
+         
+         if (hour >= 0 && hour < 6) return `凌晨${timeStr}`
+         if (hour >= 6 && hour < 12) return `上午${timeStr}`
+         if (hour >= 12 && hour < 13) return `中午${timeStr}`
+         if (hour >= 13 && hour < 18) return `下午${timeStr}`
+         if (hour >= 18 && hour < 24) return `晚上${timeStr}`
+      }
+    }
+
+    // 2. 跨日但在同一周内
+    const oneDay = 24 * 60 * 60 * 1000
+    const diffDays = Math.floor(diffMs / oneDay)
+    const isSameYear = now.getFullYear() === start.getFullYear()
+    
+    if (diffDays === 1 || (diffDays === 0 && !isToday)) { 
+       const hour = start.getHours().toString().padStart(2, '0')
+       const minute = start.getMinutes().toString().padStart(2, '0')
+       return `昨天${hour}:${minute}`
+    }
+
+    // 3. 跨周但在本年度内 (及其他本年度内的时间)
+    if (isSameYear) {
       const month = (start.getMonth() + 1).toString().padStart(2, '0')
       const day = start.getDate().toString().padStart(2, '0')
       const hour = start.getHours().toString().padStart(2, '0')
       const minute = start.getMinutes().toString().padStart(2, '0')
-      return `${year}-${month}-${day} ${hour}:${minute}`
+      return `${month}-${day} ${hour}:${minute}`
     }
+
+    // 4. 跨年
+    const year = start.getFullYear().toString().slice(-2)
+    const month = (start.getMonth() + 1).toString().padStart(2, '0')
+    const day = start.getDate().toString().padStart(2, '0')
+    const hour = start.getHours().toString().padStart(2, '0')
+    const minute = start.getMinutes().toString().padStart(2, '0')
+    return `${year}-${month}-${day} ${hour}:${minute}`
   }
 
   const getServicePort = (service: Service): string | null => {
@@ -185,7 +232,7 @@ export function ServiceTable({
             <TableHead>健康状态</TableHead>
             <TableHead>端口</TableHead>
             <TableHead>PID</TableHead>
-            <TableHead>启动时间</TableHead>
+            <TableHead>最新启动时间</TableHead>
             <TableHead>依赖</TableHead>
             <TableHead className="text-center">操作</TableHead>
           </TableRow>

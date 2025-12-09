@@ -170,6 +170,10 @@ pub struct Service {
     
     // 运行时信息
     #[serde(default)]
+    pub pid: Option<u32>,
+    #[serde(default)]
+    pub started_at: Option<String>,
+    #[serde(default)]
     pub exit_code: Option<i32>,
     #[serde(default)]
     pub exit_signal: Option<String>,
