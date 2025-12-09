@@ -371,26 +371,63 @@ pub fn get_pid_port(pid: u32) -> Result<Option<u16>, String> {
     // Windows implementation using netstat
     #[cfg(target_os = "windows")]
     {
+        // 1. 获取 netstat 输出（一次获取，多次查询）
         let output = Command::new("netstat")
             .args(&["-ano"])
             .output()
             .map_err(|e| e.to_string())?;
             
-        let output_str = String::from_utf8_lossy(&output.stdout);
+        let netstat_str = String::from_utf8_lossy(&output.stdout);
         
-        // Find line containing PID
-        // Format: TCP    0.0.0.0:6379           0.0.0.0:0              LISTENING       17232
-        for line in output_str.lines() {
-            if line.trim().ends_with(&pid.to_string()) && line.contains("LISTENING") && line.contains("TCP") {
-                // Extract port
-                // Split by whitespace
+        // 定义内部闭包：查找指定 PID 的端口
+        let find_port_for_pid = |target_pid: u32| -> Option<u16> {
+            for line in netstat_str.lines() {
+                // 确保包含 LISTENING 和 TCP
+                if !line.contains("LISTENING") || !line.contains("TCP") {
+                    continue;
+                }
+                
+                // 分割并检查最后一个字段是否精确匹配 PID
                 let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() >= 2 {
-                    let local_address = parts[1]; // 0.0.0.0:6379 or [::]:6379
-                    if let Some(colon_idx) = local_address.rfind(':') {
-                        if let Ok(port) = local_address[colon_idx + 1..].parse::<u16>() {
-                            return Ok(Some(port));
+                if parts.len() < 5 {
+                    continue;
+                }
+                
+                // PID 通常在最后
+                if let Ok(line_pid) = parts[parts.len() - 1].parse::<u32>() {
+                    if line_pid == target_pid {
+                        // 提取端口：本地地址通常是第二个字段 (parts[1])
+                        let local_address = parts[1]; // 0.0.0.0:80
+                        if let Some(colon_idx) = local_address.rfind(':') {
+                            if let Ok(port) = local_address[colon_idx + 1..].parse::<u16>() {
+                                return Some(port);
+                            }
                         }
+                    }
+                }
+            }
+            None
+        };
+
+        // 2. 尝试查找主进程的端口
+        if let Some(port) = find_port_for_pid(pid) {
+            return Ok(Some(port));
+        }
+
+        // 3. 如果主进程没找到，尝试查找子进程（例如 Nginx Worker）
+        // 使用 wmic 查找子进程: wmic process where (ParentProcessId=PID) get ProcessId
+        let wmic_output = Command::new("wmic")
+            .args(&["process", "where", &format!("ParentProcessId={}", pid), "get", "ProcessId"])
+            .output();
+            
+        if let Ok(output) = wmic_output {
+            let output_str = String::from_utf8_lossy(&output.stdout);
+            // wmic 输出包含表头，我们需要跳过非数字行
+            for line in output_str.lines() {
+                if let Ok(child_pid) = line.trim().parse::<u32>() {
+                    // 找到子进程，检查端口
+                    if let Some(port) = find_port_for_pid(child_pid) {
+                        return Ok(Some(port));
                     }
                 }
             }

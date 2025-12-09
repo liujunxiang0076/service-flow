@@ -50,7 +50,13 @@ export function useConfig() {
                       console.log(`[fetchConfig] Service ${service.id}: found port ${port} via netstat`)
                       // 动态更新 healthCheck 中的端口，以便 UI 显示
                       if (!service.healthCheck) {
-                        service.healthCheck = { type: 'tcp', port: port, host: 'localhost' } as any
+                        service.healthCheck = { 
+                          type: 'tcp', 
+                          port: port, 
+                          host: 'localhost',
+                          interval: 10,
+                          timeout: 5
+                        } as any
                       } else {
                         // 兼容不同格式
                         const hc = service.healthCheck as any
